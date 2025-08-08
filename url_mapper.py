@@ -21,9 +21,20 @@ Key Features:
 import json
 import os
 import shutil
+import sys
+import glob
+import threading
 from datetime import datetime
-from typing import Dict, List, Set, Any, Optional
+from typing import Dict, List, Set, Any, Optional, Tuple
 import logging
+
+# Optional imports for API mode
+try:
+    from flask import Flask, request, jsonify
+except Exception:  # Flask may be absent in non-API usage
+    Flask = None  # type: ignore
+    request = None  # type: ignore
+    jsonify = None  # type: ignore
 
 # Setup logging
 logging.basicConfig(
@@ -35,26 +46,55 @@ logging.basicConfig(
 
 class URLMapper:
     def __init__(self):
+        # Dynamic file discovery patterns; latest file by mtime will be used
         self.platform_configs = {
             'amazon': {
-                'input_file': 'scraperscripts/all_data_amazon.json',
                 'identifier': 'amazon.in',
-                'order': 1
+                'order': 1,
+                'patterns': [
+                    '**/all_data_amazon_*.json',
+                    'all_data_amazon_*.json',
+                    'scraperscripts/all_data_amazon_*.json',
+                    'scraperscripts/all_data_amazon.json',
+                    '**/all_data_amazon.json',
+                    'all_data_amazon.json'
+                ]
             },
             'flipkart': {
-                'input_file': 'scraperscripts/comprehensive_amazon_offers.json',
                 'identifier': 'flipkart',
-                'order': 2
+                'order': 2,
+                'patterns': [
+                    '**/all_data_flipkart_*.json',
+                    'all_data_flipkart_*.json',
+                    'scraperscripts/all_data_flipkart_*.json',
+                    'scraperscripts/comprehensive_amazon_offers.json',
+                    '**/comprehensive_amazon_offers.json',
+                    'comprehensive_amazon_offers.json'
+                ]
             },
             'croma': {
-                'input_file': 'scraperscripts/all_data_amazon_jio_croma.json',
                 'identifier': 'croma',
-                'order': 3
+                'order': 3,
+                'patterns': [
+                    '**/all_data_amazon_jio_croma_*.json',
+                    'all_data_amazon_jio_croma_*.json',
+                    'scraperscripts/all_data_amazon_jio_croma_*.json',
+                    'scraperscripts/all_data_amazon_jio_croma.json',
+                    '**/all_data_amazon_jio_croma.json',
+                    'all_data_amazon_jio_croma.json'
+                ]
             },
             'jiomart': {
-                'input_file': 'scraperscripts/all_data_amazon_jio.json',
                 'identifier': 'jiomart',
-                'order': 4
+                'order': 4,
+                'patterns': [
+                    '**/all_data_jiomart_*.json',
+                    'all_data_jiomart_*.json',
+                    'scraperscripts/all_data_jiomart_*.json',
+                    'scraperscripts/all_data_amazon_jio.json',
+                    '**/all_data_amazon_jio.json',
+                    'all_data_amazon_jio.json'
+                ]
             }
         }
         
@@ -75,23 +115,42 @@ class URLMapper:
             'jiomart': set()
         }
     
-    def load_platform_data(self, platform: str) -> Optional[List[Dict]]:
-        """Load data from a platform's JSON file with error handling."""
-        config = self.platform_configs[platform]
-        input_file = config['input_file']
-        
-        if not os.path.exists(input_file):
-            print(f"⚠️  Platform {platform.upper()} file not found: {input_file}")
-            logging.warning(f"Platform {platform} file not found: {input_file}")
+    def _find_latest_file(self, patterns: List[str]) -> Optional[str]:
+        """Find the newest JSON file matching any of the glob patterns."""
+        candidates: List[Tuple[float, str]] = []
+        for pattern in patterns:
+            for path in glob.glob(pattern, recursive=True):
+                if not path.lower().endswith('.json'):
+                    continue
+                lower = path.lower()
+                if '.progress_' in lower or '.backup_' in lower:
+                    continue
+                try:
+                    candidates.append((os.path.getmtime(path), path))
+                except OSError:
+                    continue
+        if not candidates:
             return None
-        
+        candidates.sort(key=lambda t: t[0], reverse=True)
+        return candidates[0][1]
+
+    def load_platform_data(self, platform: str) -> Optional[List[Dict]]:
+        """Load data from the latest available platform JSON with error handling."""
+        config = self.platform_configs[platform]
+        input_file = self._find_latest_file(config['patterns'])
+
+        if not input_file or not os.path.exists(input_file):
+            print(f"⚠️  Platform {platform.upper()} file not found (patterns: {config['patterns']})")
+            logging.warning(f"Platform {platform} file not found (patterns: {config['patterns']})")
+            return None
+
         try:
             print(f"📖 Loading {platform.upper()} data from {input_file}")
             with open(input_file, 'r', encoding='utf-8') as f:
                 data = json.load(f)
             
             print(f"✅ Loaded {len(data)} entries from {platform.upper()}")
-            logging.info(f"Successfully loaded {len(data)} entries from {platform} file")
+            logging.info(f"Successfully loaded {len(data)} entries from {platform} file: {input_file}")
             return data
             
         except Exception as e:
@@ -341,5 +400,78 @@ def main():
     
     return success
 
+"""
+API mode (optional): expose endpoints to run the mapper and check status
+Usage: python basantfileforauto/url_mapper.py --api
+"""
+
+# Global mapping status for API visibility
+mapping_status: Dict[str, Any] = {
+    'running': False,
+    'started_at': None,
+    'finished_at': None,
+    'output_file': None,
+    'success': None,
+    'error': None,
+    'stats': None,
+}
+
+def _run_mapper_in_thread(output_file: str):
+    global mapping_status
+    try:
+        mapping_status.update({
+            'running': True,
+            'started_at': datetime.now().isoformat(timespec='seconds'),
+            'finished_at': None,
+            'output_file': output_file,
+            'success': None,
+            'error': None,
+            'stats': None,
+        })
+
+        mapper = URLMapper()
+        success = mapper.process_all_platforms(output_file)
+
+        mapping_status.update({
+            'running': False,
+            'finished_at': datetime.now().isoformat(timespec='seconds'),
+            'success': success,
+            'stats': mapper.stats,
+        })
+    except Exception as exc:
+        mapping_status.update({
+            'running': False,
+            'finished_at': datetime.now().isoformat(timespec='seconds'),
+            'success': False,
+            'error': str(exc),
+        })
+
+def create_app() -> Any:
+    if Flask is None:
+        raise RuntimeError("Flask is not installed. Install it to use --api mode.")
+
+    app = Flask(__name__)
+
+    @app.route('/mapper/run', methods=['POST'])
+    def mapper_run():
+        if mapping_status.get('running'):
+            return jsonify({'message': 'Mapper already running', 'status': mapping_status}), 409
+        data = request.get_json(silent=True) or {}
+        output_file = data.get('output_file', 'final.json')
+        thread = threading.Thread(target=_run_mapper_in_thread, args=(output_file,), daemon=True)
+        thread.start()
+        return jsonify({'message': 'Mapper started', 'output_file': output_file, 'status': mapping_status}), 202
+
+    @app.route('/mapper/status', methods=['GET'])
+    def mapper_status():
+        return jsonify(mapping_status), 200
+
+    return app
+
+
 if __name__ == "__main__":
-    main()
+    if '--api' in sys.argv:
+        app = create_app()
+        app.run(host='0.0.0.0', port=5005, debug=False)
+    else:
+        main()
