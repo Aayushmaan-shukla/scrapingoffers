@@ -412,25 +412,31 @@ class OfferAnalyzer:
             r'\bvisa\s+card\b.*\bdebit\b', r'\bmaster\s+card\b.*\bdebit\b'
         ]
         
+        # Normalize common synonyms to Credit/Debit
+        if any(phrase in description_lower for phrase in [
+            'credit & debit', 'credit and debit', 'credit/debit', 'credit or debit', 'both credit and debit'
+        ]):
+            return "Credit/Debit"
+
         # Check for credit card patterns
-        if any(re.search(pattern, description_lower) for pattern in credit_patterns):
-            # Check if it's both credit and debit
-            if any(re.search(pattern, description_lower) for pattern in debit_patterns):
-                return "Credit/Debit"
-            return "Credit"
-        
+        credit_match = any(re.search(pattern, description_lower) for pattern in credit_patterns)
         # Check for debit card patterns
-        if any(re.search(pattern, description_lower) for pattern in debit_patterns):
+        debit_match = any(re.search(pattern, description_lower) for pattern in debit_patterns)
+
+        if credit_match and debit_match:
+            return "Credit/Debit"
+        if credit_match:
+            return "Credit"
+        if debit_match:
             return "Debit"
-        
-        # Check for general card mentions
-        if re.search(r'\bcard\b', description_lower):
-            # If card is mentioned but type is unclear, try to infer from context
-            if any(word in description_lower for word in ['premium', 'rewards', 'cashback', 'points']):
-                return "Credit"  # Premium features usually indicate credit cards
-            elif 'atm' in description_lower:
-                return "Debit"
-        
+
+        # If card is mentioned but no explicit credit/debit, treat as Credit/Debit to avoid misses
+        has_card_word = re.search(r'\bcard(s)?\b', description_lower) is not None
+        has_bank_offer_word = 'bank offer' in description_lower or ('bank' in description_lower and 'offer' in description_lower)
+        mentions_provider = any(p.lower() in description_lower for p in self.card_providers)
+        if has_card_word or has_bank_offer_word or mentions_provider:
+            return "Credit/Debit"
+
         return None
 
     def extract_card_provider(self, description: str) -> Optional[str]:
@@ -635,12 +641,10 @@ class OfferAnalyzer:
         # Determine offer type
         offer_type = self.determine_offer_type(card_title, description)
         
-        # Fix title for bank offers - ensure it's never blank
-        if offer_type == "Bank Offer":
-            title = "Bank Offer"
-        elif not card_title or card_title.lower() in ['summary', '']:
-            # If title is empty or generic, use the offer type
-            title = offer_type
+        # Ensure title is robust in all cases, especially when cards appear after other sections
+        normalized_card_title = card_title.lower()
+        if not card_title or normalized_card_title in ['summary', '']:
+            title = offer_type or 'Offer'
         else:
             title = card_title
         
@@ -650,6 +654,9 @@ class OfferAnalyzer:
         validity = self.extract_validity(description)
         min_spend = self.extract_min_spend(description)
         card_type = self.extract_card_type(description)
+        # Replace any ambiguous or 'both' type with explicit "Credit/Debit"
+        if card_type and card_type.strip().lower() in { 'both', 'credit & debit', 'credit and debit', 'credit/debit', 'credit or debit' }:
+            card_type = "Credit/Debit"
         card_provider = self.extract_card_provider(description)
         
         # Determine if it's an instant discount
@@ -870,37 +877,8 @@ class OfferAnalyzer:
             base_score += 5
             logging.info(f"INSTANT DISCOUNT BONUS: +5 points")
 
-        # Bank reputation bonus - enhanced to handle null banks
-        if offer.bank:
-            bank_bonus = (self.bank_scores.get(offer.bank, self.default_bank_score) - 70) / 2
-            base_score += bank_bonus
-            logging.info(f"BANK BONUS: +{bank_bonus:.1f} points for {offer.bank}")
-        else:
-            # Penalty for unknown bank, but not too harsh
-            base_score -= 5
-            logging.info(f"UNKNOWN BANK PENALTY: -5 points")
-
-        # Card type bonus
-        if offer.card_type:
-            if offer.card_type == "Credit":
-                base_score += 3  # Credit cards generally have better offers
-                logging.info(f"CREDIT CARD BONUS: +3 points")
-            elif offer.card_type == "Credit/Debit":
-                base_score += 2  # Flexible options get moderate bonus
-                logging.info(f"CREDIT/DEBIT CARD BONUS: +2 points")
-            elif offer.card_type == "Debit":
-                base_score += 1  # Debit cards get small bonus
-                logging.info(f"DEBIT CARD BONUS: +1 point")
-
-        # Card provider bonus
-        if offer.card_provider:
-            provider_bonus = {
-                "Visa": 2, "Mastercard": 2, "RuPay": 3,  # RuPay gets extra for being domestic
-                "American Express": 4, "Amex": 4,  # Premium cards
-                "Diners Club": 3
-            }.get(offer.card_provider, 1)  # Default bonus for other providers
-            base_score += provider_bonus
-            logging.info(f"CARD PROVIDER BONUS: +{provider_bonus} points for {offer.card_provider}")
+        # Neutralize reputation biases: no bank/card-type/card-provider adjustments
+        # Keep score driven by discount amount, min spend applicability, and instant nature only
 
         final_score = max(0, min(100, base_score))
         logging.info(f"FINAL BANK OFFER SCORE: {final_score:.1f} for ₹{offer.amount} discount (Bank: {offer.bank}, Min spend: ₹{offer.min_spend if offer.min_spend else 'None'}, Card: {offer.card_type}, Provider: {offer.card_provider})")
