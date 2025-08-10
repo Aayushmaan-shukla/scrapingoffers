@@ -427,119 +427,24 @@ class ComprehensiveJioMartScraper:
 # Include the JioMartOfferAnalyzer class from the original script
 class JioMartOfferAnalyzer:
     def __init__(self):
-        # Comprehensive bank reputation scores for Indian banks (same as other scripts)
-        self.bank_scores = {
-            # Public Sector Banks (PSBs)
-            "SBI": 75,
-            "State Bank of India": 75,
-            "PNB": 72,
-            "Punjab National Bank": 72,
-            "BoB": 70,
-            "Bank of Baroda": 70,
-            "Canara Bank": 68,
-            "Union Bank of India": 65,
-            "Indian Bank": 65,
-            "Bank of India": 65,
-            "UCO Bank": 62,
-            "Indian Overseas Bank": 62,
-            "IOB": 62,
-            "Central Bank of India": 62,
-            "Bank of Maharashtra": 60,
-            "Punjab & Sind Bank": 60,
-            
-            # Private Sector Banks
-            "HDFC": 85,
-            "HDFC Bank": 85,
-            "ICICI": 90,
-            "ICICI Bank": 90,
-            "Axis": 80,
-            "Axis Bank": 80,
-            "Kotak": 70,
-            "Kotak Mahindra Bank": 70,
-            "IndusInd Bank": 68,
-            "Yes Bank": 60,
-            "IDFC FIRST Bank": 65,
-            "IDFC": 65,
-            "Federal Bank": 63,
-            "South Indian Bank": 60,
-            "RBL Bank": 62,
-            "DCB Bank": 60,
-            "Tamilnad Mercantile Bank": 58,
-            "TMB": 58,
-            "Karur Vysya Bank": 58,
-            "CSB Bank": 58,
-            "City Union Bank": 58,
-            "Bandhan Bank": 60,
-            "Jammu & Kashmir Bank": 58,
-            
-            # Small Finance Banks
-            "AU Small Finance Bank": 65,
-            "AU Bank": 65,
-            "Equitas Small Finance Bank": 62,
-            "Equitas": 62,
-            "Ujjivan Small Finance Bank": 60,
-            "Ujjivan": 60,
-            "Suryoday Small Finance Bank": 58,
-            "ESAF Small Finance Bank": 58,
-            "Fincare Small Finance Bank": 58,
-            "Jana Small Finance Bank": 58,
-            "North East Small Finance Bank": 58,
-            "Capital Small Finance Bank": 58,
-            "Unity Small Finance Bank": 58,
-            "Shivalik Small Finance Bank": 58,
-            
-            # Foreign Banks
-            "Citi": 80,
-            "Citibank": 80,
-            "HSBC": 78,
-            "Standard Chartered": 75,
-            "Deutsche Bank": 75,
-            "Barclays Bank": 75,
-            "DBS Bank": 72,
-            "JP Morgan Chase Bank": 75,
-            "Bank of America": 75,
-            
-            # Co-operative Banks
-            "Saraswat Co-operative Bank": 60,
-            "Saraswat Bank": 60,
-            "Shamrao Vithal Co-operative Bank": 55,
-            "PMC Bank": 50,
-            "TJSB Sahakari Bank": 55,
-            
-            # Credit Card Companies
-            "Amex": 85,
-            "American Express": 85,
-            
-            # Digital Payment Services & Wallets
-            "Paytm": 75,
-            "MobiKwik": 70,
-            "Mobikwik": 70,
-            "PhonePe": 75,
-            "Google Pay": 75,
-            "GPay": 75,
-            "Amazon Pay": 72,
-            "Airtel Money": 65,
-            "Jio Money": 65,
-            "FreeCharge": 65,
-            "PayU": 68,
-            "Razorpay": 68,
-            "UPI": 78,
-            "BHIM UPI": 75,
-            "Paytm UPI": 75,
-            "Paytm Wallet": 75,
-            "MobiKwik Wallet": 70,
-            "Mobikwik Wallet": 70,
-            "PhonePe UPI": 75,
-            "Google Pay UPI": 75,
-            "GPay UPI": 75,
-            "Paytm UPI Lite": 73,
-            "UPI Lite": 73,
-            "Wallet": 65,
-            "Digital Wallet": 65
-        }
-        
-        # Default bank score if not found in the list
-        self.default_bank_score = 70
+        # Keep lists useful for extraction, but do NOT use them for scoring biases
+        self.known_banks = [
+            "SBI", "State Bank of India", "PNB", "Punjab National Bank", "BoB", "Bank of Baroda",
+            "Canara Bank", "Union Bank of India", "Indian Bank", "Bank of India", "UCO Bank",
+            "Indian Overseas Bank", "IOB", "Central Bank of India", "Bank of Maharashtra",
+            "Punjab & Sind Bank", "HDFC", "HDFC Bank", "ICICI", "ICICI Bank", "Axis", "Axis Bank",
+            "Kotak", "Kotak Mahindra Bank", "IndusInd Bank", "Yes Bank", "IDFC FIRST Bank", "IDFC",
+            "Federal Bank", "South Indian Bank", "RBL Bank", "DCB Bank", "Tamilnad Mercantile Bank",
+            "TMB", "Karur Vysya Bank", "CSB Bank", "City Union Bank", "Bandhan Bank",
+            "Jammu & Kashmir Bank", "Citi", "Citibank", "HSBC", "Standard Chartered", "Deutsche Bank",
+            "Barclays Bank", "DBS Bank", "JP Morgan Chase Bank", "Bank of America", "Amex", "American Express"
+        ]
+        self.known_digital_providers = [
+            "Paytm", "MobiKwik", "Mobikwik", "PhonePe", "Google Pay", "GPay", "Amazon Pay",
+            "Airtel Money", "Jio Money", "FreeCharge", "PayU", "Razorpay", "UPI", "BHIM UPI",
+            "Paytm UPI", "Paytm Wallet", "MobiKwik Wallet", "Mobikwik Wallet", "PhonePe UPI",
+            "Google Pay UPI", "GPay UPI", "Paytm UPI Lite", "UPI Lite", "Wallet", "Digital Wallet"
+        ]
 
     def extract_card_type(self, description: str) -> Optional[str]:
         """Extract card type (Credit/Debit) from offer description with enhanced detection."""
@@ -556,25 +461,31 @@ class JioMartOfferAnalyzer:
             r'\bvisa\s+card\b.*\bdebit\b', r'\bmaster\s+card\b.*\bdebit\b'
         ]
         
-        # Check for credit card patterns
-        if any(re.search(pattern, description_lower) for pattern in credit_patterns):
-            # Check if it's both credit and debit
-            if any(re.search(pattern, description_lower) for pattern in debit_patterns):
-                return "Credit/Debit"
+        # Normalize common synonyms to Credit/Debit
+        if any(phrase in description_lower for phrase in [
+            'credit & debit', 'credit and debit', 'credit/debit', 'credit or debit', 'both credit and debit'
+        ]):
+            return "Credit/Debit"
+
+        credit_match = any(re.search(pattern, description_lower) for pattern in credit_patterns)
+        debit_match = any(re.search(pattern, description_lower) for pattern in debit_patterns)
+
+        if credit_match and debit_match:
+            return "Credit/Debit"
+        if credit_match:
             return "Credit"
-        
-        # Check for debit card patterns
-        if any(re.search(pattern, description_lower) for pattern in debit_patterns):
+        if debit_match:
             return "Debit"
-        
-        # Check for general card mentions
-        if re.search(r'\bcard\b', description_lower):
-            # If card is mentioned but type is unclear, try to infer from context
-            if any(word in description_lower for word in ['premium', 'rewards', 'cashback', 'points']):
-                return "Credit"  # Premium features usually indicate credit cards
-            elif 'atm' in description_lower:
-                return "Debit"
-        
+
+        # If card or bank is mentioned but type is unclear, return Credit/Debit to avoid misses
+        has_card_word = re.search(r'\bcard(s)?\b', description_lower) is not None
+        has_bank_offer_word = 'bank offer' in description_lower or ('bank' in description_lower and 'offer' in description_lower)
+        mentions_provider = any(p.lower() in description_lower for p in [
+            'visa', 'mastercard', 'rupay', 'american express', 'amex', 'diners club', 'discover', 'unionpay', 'jcb', 'maestro', 'cirrus', 'plus'
+        ])
+        if has_card_word or has_bank_offer_word or mentions_provider:
+            return "Credit/Debit"
+
         return None
 
     def extract_amount(self, description: str) -> float:
@@ -631,77 +542,41 @@ class JioMartOfferAnalyzer:
             return 0.0
 
     def extract_bank(self, description: str) -> Optional[str]:
-        """Extract bank name from offer description."""
+        """Extract bank name or digital provider from description (robust matching)."""
         if not description:
             return None
-        
+
         description_lower = description.lower()
-        
-        # Bank name patterns for better matching
+
+        # Direct dictionary of common variations -> standard form
         bank_variations = {
-            'hdfc': 'HDFC',
-            'icici': 'ICICI', 
-            'axis': 'Axis',
-            'sbi': 'SBI',
-            'kotak': 'Kotak',
-            'yes': 'Yes Bank',
-            'idfc': 'IDFC',
-            'indusind': 'IndusInd Bank',
-            'federal': 'Federal Bank',
-            'rbl': 'RBL Bank',
-            'citi': 'Citi',
-            'hsbc': 'HSBC',
-            'standard chartered': 'Standard Chartered',
-            'au bank': 'AU Bank',
-            'equitas': 'Equitas',
-            'ujjivan': 'Ujjivan',
-            'pnb': 'PNB',
-            'bob': 'BoB',
-            'canara': 'Canara Bank',
-            'union bank': 'Union Bank of India',
-            'indian bank': 'Indian Bank',
-            'bank of india': 'Bank of India',
-            'uco': 'UCO Bank',
-            'iob': 'Indian Overseas Bank',
-            'central bank': 'Central Bank of India',
-            'amex': 'Amex',
-            'american express': 'American Express',
-            
-            # Digital Payment Services & Wallets
-            'paytm': 'Paytm',
-            'mobikwik': 'MobiKwik',
-            'phonepe': 'PhonePe',
-            'phone pe': 'PhonePe',
-            'google pay': 'Google Pay',
-            'gpay': 'Google Pay',
-            'g pay': 'Google Pay',
-            'amazon pay': 'Amazon Pay',
-            'upi': 'UPI',
-            'paytm upi': 'Paytm UPI',
-            'paytm wallet': 'Paytm Wallet',
-            'mobikwik wallet': 'MobiKwik Wallet',
-            'paytm upi lite': 'Paytm UPI Lite',
-            'upi lite': 'UPI Lite',
-            'bhim upi': 'BHIM UPI',
-            'bhim': 'BHIM UPI',
-            'phonepe upi': 'PhonePe UPI',
-            'google pay upi': 'Google Pay UPI',
-            'gpay upi': 'Google Pay UPI',
-            'airtel money': 'Airtel Money',
-            'jio money': 'Jio Money',
-            'freecharge': 'FreeCharge',
-            'payu': 'PayU',
-            'razorpay': 'Razorpay',
-            'wallet': 'Wallet',
-            'digital wallet': 'Digital Wallet'
+            'hdfc': 'HDFC', 'icici': 'ICICI', 'axis': 'Axis', 'sbi': 'SBI', 'kotak': 'Kotak',
+            'yes': 'Yes Bank', 'idfc': 'IDFC', 'indusind': 'IndusInd Bank', 'federal': 'Federal Bank',
+            'rbl': 'RBL Bank', 'citi': 'Citi', 'hsbc': 'HSBC', 'standard chartered': 'Standard Chartered',
+            'au bank': 'AU Bank', 'equitas': 'Equitas', 'ujjivan': 'Ujjivan', 'pnb': 'PNB', 'bob': 'BoB',
+            'canara': 'Canara Bank', 'union bank': 'Union Bank of India', 'indian bank': 'Indian Bank',
+            'bank of india': 'Bank of India', 'uco': 'UCO Bank', 'iob': 'Indian Overseas Bank',
+            'central bank': 'Central Bank of India', 'amex': 'Amex', 'american express': 'American Express',
+            # Digital
+            'paytm': 'Paytm', 'mobikwik': 'MobiKwik', 'phonepe': 'PhonePe', 'phone pe': 'PhonePe',
+            'google pay': 'Google Pay', 'gpay': 'Google Pay', 'g pay': 'Google Pay', 'amazon pay': 'Amazon Pay',
+            'upi': 'UPI', 'paytm upi': 'Paytm UPI', 'paytm wallet': 'Paytm Wallet', 'mobikwik wallet': 'MobiKwik Wallet',
+            'paytm upi lite': 'Paytm UPI Lite', 'upi lite': 'UPI Lite', 'bhim upi': 'BHIM UPI', 'bhim': 'BHIM UPI',
+            'phonepe upi': 'PhonePe UPI', 'google pay upi': 'Google Pay UPI', 'gpay upi': 'Google Pay UPI',
+            'airtel money': 'Airtel Money', 'jio money': 'Jio Money', 'freecharge': 'FreeCharge', 'payu': 'PayU',
+            'razorpay': 'Razorpay', 'wallet': 'Wallet', 'digital wallet': 'Digital Wallet'
         }
-        
+
         for variation, standard_name in bank_variations.items():
             if variation in description_lower:
-                logging.info(f"Found bank '{standard_name}' using variation '{variation}' in description")
+                logging.info(f"Found bank/provider '{standard_name}' via '{variation}'")
                 return standard_name
-        
-        logging.debug(f"No bank found in description: {description[:100]}...")
+
+        # Fallback: search by known names directly for robustness
+        for name in sorted(self.known_banks + self.known_digital_providers, key=len, reverse=True):
+            if name.lower() in description_lower:
+                return name
+
         return None
 
     def extract_min_spend(self, description: str) -> Optional[float]:
@@ -759,13 +634,11 @@ class JioMartOfferAnalyzer:
         
         # Determine offer type
         offer_type = self.determine_offer_type(card_title, description)
-        
-        # Fix title for bank offers - ensure it's never blank
-        if offer_type == "Bank Offer":
-            title = "Bank Offer"
-        elif not card_title or card_title.lower() in ['summary', '', 'jiomart offer']:
-            # If title is empty or generic, use the offer type
-            title = offer_type
+
+        # Ensure stable non-empty title for all offers (covers "JioMart Offer" cases)
+        normalized_card_title = card_title.lower()
+        if not card_title or normalized_card_title in ['summary', '', 'jiomart offer']:
+            title = offer_type or 'Offer'
         else:
             title = card_title
         
@@ -774,6 +647,9 @@ class JioMartOfferAnalyzer:
         bank = self.extract_bank(description)
         min_spend = self.extract_min_spend(description)
         card_type = self.extract_card_type(description)
+        # Normalize ambiguous/both mentions to explicit Credit/Debit
+        if card_type and card_type.strip().lower() in { 'both', 'credit & debit', 'credit and debit', 'credit/debit', 'credit or debit' }:
+            card_type = "Credit/Debit"
         
         # Determine if it's an instant discount
         is_instant = 'instant' in description.lower() or 'cashback' not in description.lower()
@@ -829,31 +705,11 @@ class JioMartOfferAnalyzer:
                     bonus = (1 - spend_ratio) * 10  # Up to 10 points bonus
                     base_score += bonus
 
-        # INSTANT DISCOUNT BONUS
+        # INSTANT DISCOUNT BONUS (retain small bump for immediate value)
         if offer.is_instant:
             base_score += 5
 
-        # Bank reputation bonus
-        if offer.bank:
-            bank_bonus = (self.bank_scores.get(offer.bank, self.default_bank_score) - 70) / 2
-            base_score += bank_bonus
-        else:
-            # Penalty for unknown bank, but not too harsh
-            base_score -= 5
-
-        # Card type bonus
-        if offer.card_type:
-            if offer.card_type == "Credit":
-                base_score += 3  # Credit cards generally have better offers
-            elif offer.card_type == "Credit/Debit":
-                base_score += 2  # Flexible options get moderate bonus
-            elif offer.card_type == "Debit":
-                base_score += 1  # Debit cards get small bonus
-
-        # Digital Payment Service bonus (new for JioMart)
-        if offer.bank and any(keyword in offer.bank.lower() for keyword in ['upi', 'wallet', 'paytm', 'mobikwik', 'phonepe', 'google pay', 'gpay']):
-            digital_bonus = 5  # Bonus for digital payment convenience
-            base_score += digital_bonus
+        # Remove reputation/bias adjustments: no bank, card_type, card_provider/digital bonuses or penalties
 
         final_score = max(0, min(100, base_score))
         return final_score

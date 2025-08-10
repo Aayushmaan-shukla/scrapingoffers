@@ -12,3 +12,5 @@ flask
 threading
 requests
 shutil
+beautifulsoup4
+selenium
