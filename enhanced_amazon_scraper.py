@@ -2,6 +2,7 @@ import os
 import re
 import json
 import time
+import sys
 from bs4 import BeautifulSoup
 import undetected_chromedriver as uc
 import logging
@@ -1553,10 +1554,15 @@ def process_comprehensive_amazon_store_links(input_file, output_file, start_idx=
             
             # Save progress every 100 entries (optimized backup frequency)
             if (idx + 1) % 100 == 0:
-                backup_file = f"{output_file}.backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-                with open(backup_file, 'w', encoding='utf-8') as f:
-                    json.dump(data, f, indent=2, ensure_ascii=False)
-                print(f"   💾 Progress saved to {backup_file} (every 100 URLs)")
+                backup_dir = os.path.dirname(output_file) if os.path.dirname(output_file) else "/app/data"
+                os.makedirs(backup_dir, exist_ok=True)
+                backup_file = os.path.join(backup_dir, f"backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json")
+                try:
+                    with open(backup_file, 'w', encoding='utf-8') as f:
+                        json.dump(data, f, indent=2, ensure_ascii=False)
+                    print(f"   💾 Progress saved to {backup_file} (every 100 URLs)")
+                except Exception as e:
+                    print(f"   ⚠️  Warning: Could not save backup: {e}")
             
             # Small delay between requests
             time.sleep(2)
@@ -1567,11 +1573,44 @@ def process_comprehensive_amazon_store_links(input_file, output_file, start_idx=
     finally:
         driver.quit()
         
-        # Save final output
-        with open(output_file, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
-        
-        print(f"\n✅ Final output saved to {output_file}")
+        # Save final output with error handling
+        try:
+            # Ensure output directory exists
+            output_dir = os.path.dirname(output_file) if os.path.dirname(output_file) else "/app/data"
+            os.makedirs(output_dir, exist_ok=True)
+            
+            with open(output_file, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+            
+            # Verify file was created and has content
+            if os.path.exists(output_file):
+                file_size = os.path.getsize(output_file)
+                print(f"\n✅ Final output saved to {output_file}")
+                print(f"📊 Output file size: {file_size:,} bytes")
+                
+                # Additional verification
+                try:
+                    with open(output_file, 'r', encoding='utf-8') as f:
+                        test_data = json.load(f)
+                    print(f"✅ Output file verified - contains {len(test_data)} entries")
+                except Exception as e:
+                    print(f"⚠️  Warning: Could not verify output file content: {e}")
+            else:
+                print(f"❌ ERROR: Output file was not created at {output_file}")
+                
+        except Exception as e:
+            print(f"❌ ERROR saving final output: {e}")
+            import traceback
+            traceback.print_exc()
+            
+            # Try to save to a fallback location
+            try:
+                fallback_file = f"/app/emergency_output_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+                with open(fallback_file, 'w', encoding='utf-8') as f:
+                    json.dump(data, f, indent=2, ensure_ascii=False)
+                print(f"📄 Emergency output saved to {fallback_file}")
+            except Exception as e2:
+                print(f"❌ Emergency save also failed: {e2}")
         
         # Enhanced Summary
         total_processed = sum(1 for link_data in amazon_store_links 
@@ -1679,7 +1718,7 @@ def start_scraping():
         # Get parameters from request (if any)
         data = request.get_json() if request.is_json else {}
         
-        input_file = data.get('input_file', 'all_data.json')
+        input_file = data.get('input_file', 'single_phone.json')
         # Generate timestamped output filename if not provided
         output_file = data.get('output_file', None)
         if output_file is None:
@@ -1832,7 +1871,15 @@ if __name__ == "__main__":
         input_file = "all_data.json"
         # Generate timestamped output filename
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        output_file = f"all_data_amazon_{timestamp}.json"
+        logging.info(f"Loaded timestamped output file: {timestamp}")
+        
+        # Use absolute path and ensure the data directory exists
+        output_dir = "/app/data"
+        os.makedirs(output_dir, exist_ok=True)
+        output_file = os.path.join(output_dir, f"all_data_amazon_{timestamp}.json")
+        
+        # Also create a symlink with a consistent name for easy access
+        latest_output_file = os.path.join(output_dir, "latest_amazon_output.json")
         
         print("🚀 ENHANCED COMPREHENSIVE AMAZON SCRAPER WITH PRICE & AVAILABILITY TRACKING")
         print("This script finds ALL Amazon store links in deep nested JSON and adds:")
@@ -1861,4 +1908,40 @@ if __name__ == "__main__":
         print(f"   💾 Backup frequency: Every 100 processed URLs")
         print()
         
-        process_comprehensive_amazon_store_links(input_file, output_file, start_idx, max_entries) 
+        # Verify input file exists
+        if not os.path.exists(input_file):
+            print(f"❌ ERROR: Input file '{input_file}' not found!")
+            print(f"📂 Current working directory: {os.getcwd()}")
+            print(f"📁 Files in current directory: {os.listdir('.')}")
+            sys.exit(1)
+        
+        print(f"✅ Input file verified: {input_file}")
+        print(f"✅ Output directory created: {output_dir}")
+        
+        try:
+            process_comprehensive_amazon_store_links(input_file, output_file, start_idx, max_entries)
+            
+            # Create symlink to latest output for easy access
+            if os.path.exists(output_file):
+                if os.path.exists(latest_output_file):
+                    os.remove(latest_output_file)
+                os.symlink(os.path.basename(output_file), latest_output_file)
+                print(f"🔗 Created symlink: {latest_output_file} -> {os.path.basename(output_file)}")
+                
+                # List files in output directory for verification
+                print(f"\n📁 Files in output directory {output_dir}:")
+                for file in os.listdir(output_dir):
+                    file_path = os.path.join(output_dir, file)
+                    if os.path.isfile(file_path):
+                        size = os.path.getsize(file_path)
+                        print(f"   📄 {file} ({size:,} bytes)")
+                    else:
+                        print(f"   🔗 {file} (symlink)")
+            else:
+                print(f"⚠️  WARNING: Output file not found at {output_file}")
+                
+        except Exception as e:
+            print(f"❌ ERROR during processing: {e}")
+            import traceback
+            traceback.print_exc()
+            sys.exit(1) 
