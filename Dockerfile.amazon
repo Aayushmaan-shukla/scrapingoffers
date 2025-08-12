@@ -2,12 +2,37 @@ FROM python:3.10-slim
 
 WORKDIR /app
 
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    wget gnupg ca-certificates unzip \
+    libnss3 libxss1 libasound2 \
+    libatk-bridge2.0-0 libgtk-3-0 libgbm1 libx11-xcb1 libxcomposite1 \
+    libxcursor1 libxdamage1 libxi6 libxtst6 libxrandr2 libxrender1 \
+    libdrm2 xdg-utils fonts-liberation && \
+    rm -rf /var/lib/apt/lists/* && \
+    wget -qO- https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor > /usr/share/keyrings/google.gpg && \
+    echo "deb [signed-by=/usr/share/keyrings/google.gpg arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list && \
+    apt-get update && apt-get install -y --no-install-recommends google-chrome-stable && \
+    rm -rf /var/lib/apt/lists/*
+
+ENV CHROME_BIN=/usr/bin/google-chrome
+
 COPY requirements.txt . 
 
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY enhanced_amazon_scraper.py .
 
-RUN mkdir -p /app/data
+COPY test_output.py .
+
+COPY debug_environment.py .
+
+COPY all_data.json .
+
+# Create directories with proper permissions
+RUN mkdir -p /app/data /app/logs && chmod 777 /app/data /app/logs
+
+# Create a volume mount point for output files
+VOLUME ["/app/data"]
 
 CMD ["python3", "enhanced_amazon_scraper.py"]
