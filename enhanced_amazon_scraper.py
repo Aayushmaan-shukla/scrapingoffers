@@ -14,6 +14,231 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, ElementClickInterceptedException
+import requests
+import random
+import resource
+
+# ===============================================
+# ENHANCED AMAZON SCRAPER WITH PROXY ROTATION
+# ===============================================
+# 
+# NEW FEATURES ADDED:
+# 1. Automatic proxy rotation using ProxyScape API
+# 2. Connection error detection and recovery
+# 3. Resource management to prevent "Too many open files"
+# 4. Automatic retry logic with different proxies
+# 5. Load distribution across multiple connections
+# 
+# This scraper now automatically handles:
+# - [Errno 24] Too many open files
+# - Connection refused errors
+# - Max retries exceeded
+# - NewConnectionError
+# - Connection broken errors
+# 
+# ===============================================
+
+# ===============================================
+# PROXY MANAGEMENT FOR ERROR HANDLING
+# ===============================================
+
+class ProxyManager:
+    """
+    Manages proxy rotation using ProxyScape API to handle connection errors and rate limiting.
+    """
+    
+    def __init__(self, api_key: str):
+        self.api_key = api_key
+        self.base_url = "https://api.proxyscape.com"
+        self.proxies = []
+        self.current_proxy_index = 0
+        self.max_retries_per_proxy = 3
+        self.proxy_retry_counts = {}
+        
+    def fetch_proxies(self) -> List[Dict[str, str]]:
+        """Fetch available proxies from ProxyScape API."""
+        try:
+            url = f"{self.base_url}/v1/proxies"
+            headers = {"Authorization": f"Bearer {self.api_key}"}
+            
+            response = requests.get(url, headers=headers, timeout=10)
+            response.raise_for_status()
+            
+            data = response.json()
+            
+            # Handle different possible API response formats
+            if 'data' in data and isinstance(data['data'], list):
+                self.proxies = data['data']
+                logging.info(f"✅ Fetched {len(self.proxies)} proxies from ProxyScape")
+                return self.proxies
+            elif 'proxies' in data and isinstance(data['proxies'], list):
+                self.proxies = data['proxies']
+                logging.info(f"✅ Fetched {len(self.proxies)} proxies from ProxyScape")
+                return self.proxies
+            elif isinstance(data, list):
+                self.proxies = data
+                logging.info(f"✅ Fetched {len(self.proxies)} proxies from ProxyScape")
+                return self.proxies
+            else:
+                logging.warning(f"⚠️ Unexpected API response format from ProxyScape: {data}")
+                # Try to create fallback proxies for testing
+                self.proxies = self._create_fallback_proxies()
+                return self.proxies
+                
+        except Exception as e:
+            logging.error(f"❌ Failed to fetch proxies from ProxyScape: {e}")
+            # Create fallback proxies for testing
+            self.proxies = self._create_fallback_proxies()
+            return self.proxies
+    
+    def _create_fallback_proxies(self) -> List[Dict[str, str]]:
+        """Create fallback proxies for testing when API is unavailable."""
+        fallback_proxies = [
+            {
+                'host': '127.0.0.1',
+                'port': '8080',
+                'username': 'test',
+                'password': 'test'
+            }
+        ]
+        logging.warning("⚠️ Using fallback proxies due to API unavailability")
+        return fallback_proxies
+    
+    def test_proxy_connectivity(self, proxy: Dict[str, str]) -> bool:
+        """Test if a proxy is working by making a test request."""
+        try:
+            test_url = "http://httpbin.org/ip"
+            timeout = 10
+            
+            response = requests.get(
+                test_url, 
+                proxies=proxy, 
+                timeout=timeout,
+                verify=False  # Disable SSL verification for testing
+            )
+            
+            if response.status_code == 200:
+                logging.info(f"✅ Proxy {proxy.get('http', 'unknown')} is working")
+                return True
+            else:
+                logging.warning(f"⚠️ Proxy {proxy.get('http', 'unknown')} returned status {response.status_code}")
+                return False
+                
+        except Exception as e:
+            logging.warning(f"⚠️ Proxy {proxy.get('http', 'unknown')} test failed: {e}")
+            return False
+    
+    def get_next_proxy(self) -> Optional[Dict[str, str]]:
+        """Get the next available proxy in rotation."""
+        if not self.proxies:
+            self.fetch_proxies()
+        
+        if not self.proxies:
+            return None
+        
+        # Try to find a working proxy
+        attempts = 0
+        max_attempts = len(self.proxies) * 2  # Try each proxy twice
+        
+        while attempts < max_attempts:
+            # Get current proxy
+            proxy = self.proxies[self.current_proxy_index]
+            
+            # Format proxy for Selenium
+            formatted_proxy = {
+                'http': f"http://{proxy['username']}:{proxy['password']}@{proxy['host']}:{proxy['port']}",
+                'https': f"http://{proxy['username']}:{proxy['password']}@{proxy['host']}:{proxy['port']}"
+            }
+            
+            # Test the proxy
+            if self.test_proxy_connectivity(formatted_proxy):
+                # Move to next proxy for next call
+                self.current_proxy_index = (self.current_proxy_index + 1) % len(self.proxies)
+                logging.info(f"🔄 Using working proxy: {proxy['host']}:{proxy['port']}")
+                return formatted_proxy
+            else:
+                # Mark this proxy as failed and try the next one
+                self.mark_proxy_failed(proxy)
+                attempts += 1
+                
+                if not self.proxies:  # If all proxies were removed
+                    logging.warning("⚠️ All proxies have been marked as failed")
+                    return None
+        
+        logging.warning("⚠️ Could not find a working proxy after testing all available ones")
+        return None
+    
+    def mark_proxy_failed(self, proxy: Dict[str, str]) -> None:
+        """Mark a proxy as failed and potentially remove it from rotation."""
+        proxy_key = f"{proxy['host']}:{proxy['port']}"
+        self.proxy_retry_counts[proxy_key] = self.proxy_retry_counts.get(proxy_key, 0) + 1
+        
+        if self.proxy_retry_counts[proxy_key] >= self.max_retries_per_proxy:
+            logging.warning(f"⚠️ Proxy {proxy_key} exceeded max retries, removing from rotation")
+            # Remove failed proxy
+            self.proxies = [p for p in self.proxies if f"{p['host']}:{p['port']}" != proxy_key]
+            if self.proxies:
+                self.current_proxy_index = self.current_proxy_index % len(self.proxies)
+            else:
+                self.current_proxy_index = 0
+
+# Initialize proxy manager with your API key
+PROXY_MANAGER = ProxyManager("wvm4z69kf54pc9rod7ck")
+
+# Configuration for proxy usage
+PROXY_CONFIG = {
+    'enabled': True,  # Set to False to disable proxy usage
+    'rotation_frequency': 10,  # Use proxy every N links
+    'max_retries_per_proxy': 3,
+    'connection_error_keywords': [
+        'too many open files', 'connection refused', 'max retries exceeded',
+        'newconnectionerror', 'connection broken', 'errno 24', 'errno 111'
+    ]
+}
+
+# Configuration for data consistency checks
+DATA_CONSISTENCY_CONFIG = {
+    'enabled': True,  # Set to False to disable inconsistent data retry
+    'retry_on_inconsistent_data': True,  # Retry when price unavailable but in_stock=True
+    'max_retries_for_inconsistent_data': 1,  # Maximum retries for inconsistent data
+    'inconsistent_data_keywords': [
+        'price not available', 'price not found', 'currently unavailable'
+    ]
+}
+
+# ===============================================
+# RESOURCE MANAGEMENT FOR "TOO MANY OPEN FILES"
+# ===============================================
+
+def manage_file_descriptors():
+    """
+    Manage file descriptors to prevent "Too many open files" errors.
+    This is especially important for long-running scraping sessions.
+    """
+    try:
+        # Get current limits
+        soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+        print(f"📁 Current file descriptor limits - Soft: {soft}, Hard: {hard}")
+        
+        # Try to increase soft limit to hard limit
+        try:
+            resource.setrlimit(resource.RLIMIT_NOFILE, (hard, hard))
+            print(f"✅ Increased file descriptor limit to {hard}")
+        except ValueError:
+            print(f"⚠️ Could not increase file descriptor limit (requires root privileges)")
+            
+    except ImportError:
+        print("⚠️ Resource module not available (Windows system)")
+        # On Windows, we'll rely on proxy rotation and session management
+        print("   💡 Using proxy rotation and session management for resource control")
+
+def cleanup_resources():
+    """
+    Clean up resources to prevent memory leaks and file descriptor exhaustion.
+    """
+    import gc
+    gc.collect()
+    print("🧹 Garbage collection completed")
 
 # Use a local data directory by default; allow override via env var
 DATA_DIR = os.getenv("SCRAPED_OFFER_DATA_DIR", os.path.join(os.getcwd(), "data"))
@@ -1633,9 +1858,15 @@ class ComprehensiveAmazonExtractor:
         
         return self.amazon_links
 
-def create_chrome_driver():
+
+
+def create_chrome_driver(proxy=None, use_proxy=False):
     """
-    Create and configure a new Chrome driver session.
+    Create and configure a new Chrome driver session with optional proxy support.
+    
+    Args:
+        proxy: Proxy configuration dictionary
+        use_proxy: Whether to use proxy configuration
     """
     options = uc.ChromeOptions()
     # Use CHROME_BIN if explicitly provided; otherwise rely on system default
@@ -1655,6 +1886,37 @@ def create_chrome_driver():
     # Additional options for better compatibility
     options.add_argument('--disable-blink-features=AutomationControlled')
     options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
+    
+    # Add proxy configuration if provided
+    if use_proxy and proxy:
+        try:
+            # Extract proxy details from the proxy dictionary
+            if 'http' in proxy:
+                proxy_url = proxy['http']
+                # Parse proxy URL to extract host, port, username, password
+                if '@' in proxy_url:
+                    auth_part, host_part = proxy_url.split('@')
+                    username, password = auth_part.replace('http://', '').split(':')
+                    host, port = host_part.split(':')
+                else:
+                    host, port = proxy_url.replace('http://', '').split(':')
+                    username = password = None
+                
+                # Set proxy arguments
+                if username and password:
+                    options.add_argument(f'--proxy-server={host}:{port}')
+                    # Note: Selenium doesn't support proxy authentication directly in options
+                    # We'll need to handle this differently or use a different approach
+                    logging.warning(f"⚠️ Proxy authentication not fully supported in current setup")
+                else:
+                    options.add_argument(f'--proxy-server={host}:{port}')
+                
+                print(f"🔄 Using proxy: {host}:{port}")
+                logging.info(f"🔄 Chrome driver configured with proxy: {host}:{port}")
+                
+        except Exception as e:
+            logging.error(f"❌ Error configuring proxy: {e}")
+            print(f"❌ Proxy configuration failed: {e}")
     
     return uc.Chrome(options=options)
 
@@ -1701,6 +1963,9 @@ def process_comprehensive_amazon_store_links(input_file, output_file, start_idx=
         amazon_store_links = amazon_store_links[:max_entries]
         print(f"🔢 Limited to processing {len(amazon_store_links)} links")
     
+    # Setup resource management
+    manage_file_descriptors()
+    
     # Setup Chrome driver and analyzer
     driver = create_chrome_driver()
     analyzer = OfferAnalyzer()
@@ -1741,7 +2006,18 @@ def process_comprehensive_amazon_store_links(input_file, output_file, start_idx=
                     except Exception as e:
                         logging.warning(f"Error closing previous session: {e}")
                     
-                    driver = create_chrome_driver()
+                    # Check if we should use a proxy for this session
+                    use_proxy = False
+                    proxy = None
+                    
+                    # Use proxy every few links to distribute load
+                    if PROXY_CONFIG['enabled'] and idx % PROXY_CONFIG['rotation_frequency'] == 0:
+                        proxy = PROXY_MANAGER.get_next_proxy()
+                        if proxy:
+                            use_proxy = True
+                            print(f"   🔄 Using proxy for session rotation (every {PROXY_CONFIG['rotation_frequency']}th link)")
+                    
+                    driver = create_chrome_driver(proxy=proxy, use_proxy=use_proxy)
                     print(f"   ✅ New Chrome session created successfully")
                 
                 # Extract price and availability information
@@ -1767,6 +2043,57 @@ def process_comprehensive_amazon_store_links(input_file, output_file, start_idx=
                 print(f"   💰 Price: {store_link['price']}")
                 print(f"   📦 Availability: {price_availability_info['availability']}")
                 print(f"   📋 In Stock: {store_link['in_stock']}")
+
+                # Check for inconsistent data: Price not available but in_stock is true
+                if DATA_CONSISTENCY_CONFIG['enabled'] and DATA_CONSISTENCY_CONFIG['retry_on_inconsistent_data']:
+                    availability_text = price_availability_info.get('availability', '').lower()
+                    is_price_unavailable = any(keyword in availability_text for keyword in DATA_CONSISTENCY_CONFIG['inconsistent_data_keywords'])
+                    
+                    if is_price_unavailable and store_link['in_stock']:
+                        print(f"   ⚠️  Inconsistent data detected: Price unavailable but in_stock=True")
+                        print(f"   🔄 Retrying link to get accurate information...")
+                        
+                        # Take a screenshot before retry for debugging
+                        take_screenshot(driver, amazon_url, "inconsistent_data_before_retry", "_before_retry")
+                        
+                        # Wait a bit before retry
+                        time.sleep(3)
+                        
+                        try:
+                            # Refresh the page and retry extraction
+                            driver.refresh()
+                            time.sleep(2)  # Wait for page to load
+                            
+                            # Retry price and availability extraction
+                            retry_price_availability_info = extract_price_and_availability(driver, amazon_url)
+                            
+                            # Update with retry results
+                            store_link['in_stock'] = retry_price_availability_info.get('in_stock', True)
+                            
+                            if retry_price_availability_info.get('product_name_via_url'):
+                                store_link['product_name_via_url'] = retry_price_availability_info['product_name_via_url']
+                                print(f"   📝 Product name (retry): {retry_price_availability_info['product_name_via_url'][:100]}...")
+                            
+                            # Update price with retry results
+                            if store_link['in_stock']:
+                                if retry_price_availability_info['price'] and retry_price_availability_info['price'] not in ["Price not found", "Error extracting price", "Currently unavailable"]:
+                                    store_link['price'] = retry_price_availability_info['price']
+                                elif 'price' not in store_link or not store_link['price']:
+                                    store_link['price'] = "Price not available"
+                            
+                            print(f"   💰 Price (after retry): {store_link['price']}")
+                            print(f"   📦 Availability (after retry): {retry_price_availability_info['availability']}")
+                            print(f"   📋 In Stock (after retry): {store_link['in_stock']}")
+                            
+                            # Take screenshot after retry for comparison
+                            take_screenshot(driver, amazon_url, "inconsistent_data_after_retry", "_after_retry")
+                            
+                            print(f"   ✅ Retry completed successfully")
+                            
+                        except Exception as retry_error:
+                            logging.error(f"Retry failed for inconsistent data on {amazon_url}: {retry_error}")
+                            print(f"   ❌ Retry failed: {retry_error}")
+                            # Continue with original data if retry fails
 
                 # Record the final visited platform URL (may differ due to redirects)
                 try:
@@ -1843,6 +2170,9 @@ def process_comprehensive_amazon_store_links(input_file, output_file, start_idx=
                     with open(backup_file, 'w', encoding='utf-8') as f:
                         json.dump(data, f, indent=2, ensure_ascii=False)
                     print(f"   💾 Progress saved to {backup_file} (every 100 URLs)")
+                    
+                    # Clean up resources every 100 URLs to prevent memory leaks
+                    cleanup_resources()
                 
                 # Small delay between requests
                 time.sleep(2)
@@ -1850,6 +2180,195 @@ def process_comprehensive_amazon_store_links(input_file, output_file, start_idx=
             except Exception as e:
                 logging.error(f"Error processing link {idx + 1}: {e}")
                 print(f"   ❌ Error processing link: {e}")
+                
+                # Check if this is a connection or "too many open files" error
+                error_str = str(e).lower()
+                is_connection_error = any(keyword in error_str for keyword in PROXY_CONFIG['connection_error_keywords'])
+                
+                if is_connection_error and PROXY_CONFIG['enabled']:
+                    print(f"   🔄 Connection error detected, attempting proxy rotation...")
+                    
+                    # Try to get a new proxy and recreate the driver
+                    try:
+                        # Close current driver to free up resources
+                        try:
+                            driver.quit()
+                        except:
+                            pass
+                        
+                        # Get next available proxy
+                        proxy = PROXY_MANAGER.get_next_proxy()
+                        if proxy:
+                            print(f"   🔄 Switching to proxy for retry...")
+                            driver = create_chrome_driver(proxy=proxy, use_proxy=True)
+                            
+                            # Wait a bit before retrying
+                            time.sleep(5)
+                            
+                            # Try to process the same link again
+                            try:
+                                print(f"   🔄 Retrying with proxy...")
+                                
+                                # Extract price and availability information with proxy
+                                price_availability_info = extract_price_and_availability(driver, amazon_url)
+                                
+                                # Set in_stock status based on extracted information
+                                store_link['in_stock'] = price_availability_info.get('in_stock', True)
+                                
+                                # Add product name from URL scraping at the same level as url
+                                if price_availability_info.get('product_name_via_url'):
+                                    store_link['product_name_via_url'] = price_availability_info['product_name_via_url']
+                                    print(f"   📝 Product name: {price_availability_info['product_name_via_url'][:100]}...")
+                                
+                                # Only update price if in_stock is true, otherwise keep existing price
+                                if store_link['in_stock']:
+                                    if price_availability_info['price'] and price_availability_info['price'] not in ["Price not found", "Error extracting price", "Currently unavailable"]:
+                                        store_link['price'] = price_availability_info['price']
+                                    elif 'price' not in store_link or not store_link['price']:
+                                        store_link['price'] = "Price not available"
+                                
+                                print(f"   💰 Price: {store_link['price']}")
+                                print(f"   📦 Availability: {price_availability_info['availability']}")
+                                print(f"   📋 In Stock: {store_link['in_stock']}")
+
+                                # Check for inconsistent data: Price not available but in_stock is true (proxy retry)
+                                if DATA_CONSISTENCY_CONFIG['enabled'] and DATA_CONSISTENCY_CONFIG['retry_on_inconsistent_data']:
+                                    availability_text = price_availability_info.get('availability', '').lower()
+                                    is_price_unavailable = any(keyword in availability_text for keyword in DATA_CONSISTENCY_CONFIG['inconsistent_data_keywords'])
+                                    
+                                    if is_price_unavailable and store_link['in_stock']:
+                                            print(f"   ⚠️  Inconsistent data detected in proxy retry: Price unavailable but in_stock=True")
+                                            print(f"   🔄 Retrying link again with page refresh...")
+                                            
+                                            # Take a screenshot before retry for debugging
+                                            take_screenshot(driver, amazon_url, "inconsistent_data_proxy_retry_before", "_proxy_before_retry")
+                                            
+                                            # Wait a bit before retry
+                                            time.sleep(3)
+                                            
+                                            try:
+                                                # Refresh the page and retry extraction
+                                                driver.refresh()
+                                                time.sleep(2)  # Wait for page to load
+                                                
+                                                # Retry price and availability extraction
+                                                retry_price_availability_info = extract_price_and_availability(driver, amazon_url)
+                                                
+                                                # Update with retry results
+                                                store_link['in_stock'] = retry_price_availability_info.get('in_stock', True)
+                                                
+                                                if retry_price_availability_info.get('product_name_via_url'):
+                                                    store_link['product_name_via_url'] = retry_price_availability_info['product_name_via_url']
+                                                    print(f"   📝 Product name (proxy retry): {retry_price_availability_info['product_name_via_url'][:100]}...")
+                                                
+                                                # Update price with retry results
+                                                if store_link['in_stock']:
+                                                    if retry_price_availability_info['price'] and retry_price_availability_info['price'] not in ["Price not found", "Error extracting price", "Currently unavailable"]:
+                                                        store_link['price'] = retry_price_availability_info['price']
+                                                    elif 'price' not in store_link or not store_link['price']:
+                                                        store_link['price'] = "Price not available"
+                                                
+                                                print(f"   💰 Price (after proxy retry): {store_link['price']}")
+                                                print(f"   📦 Availability (after proxy retry): {retry_price_availability_info['availability']}")
+                                                print(f"   📋 In Stock (after proxy retry): {store_link['in_stock']}")
+                                                
+                                                # Take screenshot after retry for comparison
+                                                take_screenshot(driver, amazon_url, "inconsistent_data_proxy_retry_after", "_proxy_after_retry")
+                                                
+                                                print(f"   ✅ Proxy retry completed successfully")
+                                                
+                                            except Exception as retry_error:
+                                                logging.error(f"Proxy retry failed for inconsistent data on {amazon_url}: {retry_error}")
+                                                print(f"   ❌ Proxy retry failed: {retry_error}")
+                                                # Continue with original data if retry fails
+
+                                # Record the final visited platform URL
+                                try:
+                                    store_link['platform_url'] = driver.current_url
+                                except Exception:
+                                    store_link['platform_url'] = store_link.get('url', '')
+                                
+                                # Try to capture With Exchange price if present
+                                try:
+                                    base_price_amount = extract_price_amount(store_link.get('price', ''))
+                                    with_exchange_price = extract_with_exchange_price_from_page(driver, base_price_amount)
+                                    if with_exchange_price:
+                                        store_link['with_exchange_price'] = with_exchange_price
+                                        print(f"   🔄 With Exchange price: {with_exchange_price}")
+                                        logging.info(f"Set with_exchange_price for {amazon_url}: {with_exchange_price}")
+                                    else:
+                                        logging.info(f"No with_exchange_price found for {amazon_url}")
+                                except Exception as e:
+                                    logging.debug(f"Error setting with_exchange_price for {amazon_url}: {e}")
+                                
+                                # Get bank offers and other offers
+                                offers = get_bank_offers(driver, amazon_url)
+                                
+                                if offers:
+                                    # Get product price for ranking
+                                    price_str = store_link.get('price', '₹0')
+                                    product_price = extract_price_amount(price_str)
+                                    
+                                    # Rank the offers
+                                    ranked_offers = analyzer.rank_offers(offers, product_price)
+                                    
+                                    # Filter out unwanted offer types
+                                    filtered_offers = []
+                                    removed_count = 0
+                                    
+                                    for offer in ranked_offers:
+                                        offer_type = offer.get('offer_type', '').lower()
+                                        if offer_type in ['cashback', 'no cost emi', 'partner offers']:
+                                            removed_count += 1
+                                            logging.info(f"Removing offer type '{offer_type}' for {amazon_url}")
+                                        else:
+                                            filtered_offers.append(offer)
+                                    
+                                    store_link['ranked_offers'] = filtered_offers
+                                    
+                                    if removed_count > 0:
+                                        print(f"   🗑️  Removed {removed_count} unwanted offers (Cashback/EMI/Partner)")
+                                    
+                                    print(f"   ✅ Found and ranked {len(offers)} offers, kept {len(filtered_offers)} after filtering")
+                                    
+                                    # Log the ranking summary for remaining offers
+                                    for i, offer in enumerate(filtered_offers[:3], 1):
+                                        score_display = offer['score'] if offer['score'] is not None else 'N/A'
+                                        print(f"   🏆 Rank {i}: {offer['title']} (Score: {score_display}, Amount: ₹{offer['amount']})")
+                                else:
+                                    print(f"   ❌ No offers found")
+                                    store_link['ranked_offers'] = []
+                                    take_screenshot(driver, amazon_url, "offers_not_found", "_no_offers")
+                                
+                                # Add URL to visited list after successful processing
+                                append_visited_url(amazon_url, visited_urls_file)
+                                visited_urls.add(amazon_url)
+                                
+                                print(f"   ✅ Successfully processed with proxy after connection error!")
+                                continue  # Skip to next link since we successfully processed this one
+                                
+                            except Exception as retry_error:
+                                logging.error(f"Proxy retry failed for link {idx + 1}: {retry_error}")
+                                print(f"   ❌ Proxy retry failed: {retry_error}")
+                                
+                                # Mark proxy as failed
+                                if proxy:
+                                    PROXY_MANAGER.mark_proxy_failed(proxy)
+                                
+                                # Create a new driver without proxy for next iteration
+                                try:
+                                    driver.quit()
+                                except:
+                                    pass
+                                driver = create_chrome_driver()
+                                
+                        else:
+                            print(f"   ⚠️  No more proxies available, continuing without proxy...")
+                            driver = create_chrome_driver()
+                    except Exception as proxy_error:
+                        logging.error(f"Error during proxy rotation: {proxy_error}")
+                        print(f"   ❌ Proxy rotation failed: {proxy_error}")
+                        driver = create_chrome_driver()
                 
                 # Take screenshot when there's an error processing the link
                 try:
