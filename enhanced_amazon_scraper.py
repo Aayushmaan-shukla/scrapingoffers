@@ -10,6 +10,11 @@ from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 from flask import Flask, request, jsonify
 import threading
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException, ElementClickInterceptedException
+
 # Use a local data directory by default; allow override via env var
 DATA_DIR = os.getenv("SCRAPED_OFFER_DATA_DIR", os.path.join(os.getcwd(), "data"))
 os.makedirs(DATA_DIR, exist_ok=True)
@@ -38,6 +43,55 @@ def ensure_parent_dir(path: str) -> None:
     parent = os.path.dirname(path)
     if parent and not os.path.exists(parent):
         os.makedirs(parent, exist_ok=True)
+
+# ===============================================
+# SCREENSHOT FUNCTIONALITY FOR DEBUGGING
+# ===============================================
+
+def create_screenshots_dir():
+    """Create a screenshots directory for storing debug screenshots."""
+    screenshots_dir = os.path.join(DATA_DIR, "screenshots")
+    os.makedirs(screenshots_dir, exist_ok=True)
+    return screenshots_dir
+
+def take_screenshot(driver, url, action="debug", suffix=""):
+    """
+    Take a screenshot for debugging purposes.
+    
+    Args:
+        driver: Selenium WebDriver instance
+        url: The URL being processed
+        action: Description of the action (e.g., "price_unavailable", "offers_not_found", "error")
+        suffix: Additional suffix for the filename
+    """
+    try:
+        screenshots_dir = create_screenshots_dir()
+        
+        # Create timestamp for filename
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        
+        # Clean URL for filename (remove special characters)
+        clean_url = re.sub(r'[^\w\-_.]', '_', url)[:100]  # Limit length
+        
+        # Create filename
+        filename = f"{action}_{clean_url}_{timestamp}{suffix}.png"
+        filepath = os.path.join(screenshots_dir, filename)
+        
+        # Take screenshot
+        driver.save_screenshot(filepath)
+        
+        # Log the screenshot
+        logging.info(f"📸 Screenshot saved: {filepath} for {action} on {url}")
+        print(f"📸 Screenshot saved: {filepath}")
+        
+        return filepath
+        
+    except Exception as e:
+        logging.error(f"Failed to take screenshot for {action} on {url}: {e}")
+        print(f"❌ Screenshot failed: {e}")
+        return None
+
+
 
 # ===============================================
 # NEW FUNCTIONALITY: URL TRACKING AND PRICE/AVAILABILITY CHECKING
@@ -237,9 +291,12 @@ def extract_price_and_availability(driver, url):
                 availability = "Currently unavailable"
                 price = "Currently unavailable"
                 logging.info(f"Product unavailable (a-size-medium a-color-success): {text} from {url}")
+                
+                # Take screenshot when price is unavailable
+                take_screenshot(driver, url, "price_unavailable", "_unavailable")
                 break
         
-        # Check for price availability (class 'a-price-whole')
+                # Check for price availability (class 'a-price-whole')
         if in_stock:  # Only check for price if product is in stock
             price_elements = soup.find_all('span', class_='a-price-whole')
             if price_elements:
@@ -255,6 +312,9 @@ def extract_price_and_availability(driver, url):
                 # No price element found
                 price = "Price not found"
                 availability = "Price not available"
+                
+                # Take screenshot when no price is found
+                take_screenshot(driver, url, "price_not_found", "_no_price")
         
         # If no specific conditions met, use fallback availability check
         if availability == "Available" and not price:
@@ -1650,138 +1710,154 @@ def process_comprehensive_amazon_store_links(input_file, output_file, start_idx=
     
     try:
         for idx, link_data in enumerate(amazon_store_links):
-            entry = link_data['entry']
-            store_link = link_data['store_link']
-            location_type = link_data['location_type']
-            
-            print(f"\n🔍 Processing {idx + 1}/{len(amazon_store_links)}: {entry.get('display_name', entry.get('product_name', 'N/A'))}")
-            print(f"   📍 Location: {location_type}[{link_data['location_idx']}].store_links[{link_data['store_idx']}]")
-            print(f"   🛒 Path: {link_data['path'][:100]}...")
-            print(f"   🔧 Session: Fresh session for each link")
-            
-            amazon_url = store_link.get('url', '')
-            if not amazon_url:
-                print(f"   ⚠️  No URL found")
-                continue
-            
-            print(f"   🔗 Amazon URL: {amazon_url[:100]}...")
-            
-            # Check if URL has already been visited/scraped
-            if amazon_url in visited_urls:
-                print(f"   ⏭️  URL already scraped, skipping to preserve existing offers")
-                continue
-            
-            # Session management: recreate driver for each link (if not the first link)
-            if idx > 0:
-                print(f"   🔄 Creating fresh Chrome session for this link...")
+            try:
+                entry = link_data['entry']
+                store_link = link_data['store_link']
+                location_type = link_data['location_type']
+                
+                print(f"\n🔍 Processing {idx + 1}/{len(amazon_store_links)}: {entry.get('display_name', entry.get('product_name', 'N/A'))}")
+                print(f"   📍 Location: {location_type}[{link_data['location_idx']}].store_links[{link_data['store_idx']}]")
+                print(f"   🛒 Path: {link_data['path'][:100]}...")
+                print(f"   🔧 Session: Fresh session for each link")
+                
+                amazon_url = store_link.get('url', '')
+                if not amazon_url:
+                    print(f"   ⚠️  No URL found")
+                    continue
+                
+                print(f"   🔗 Amazon URL: {amazon_url[:100]}...")
+                
+                # Check if URL has already been visited/scraped
+                if amazon_url in visited_urls:
+                    print(f"   ⏭️  URL already scraped, skipping to preserve existing offers")
+                    continue
+                
+                # Session management: recreate driver for each link (if not the first link)
+                if idx > 0:
+                    print(f"   🔄 Creating fresh Chrome session for this link...")
+                    try:
+                        driver.quit()
+                        time.sleep(2)  # Brief pause before creating new session
+                    except Exception as e:
+                        logging.warning(f"Error closing previous session: {e}")
+                    
+                    driver = create_chrome_driver()
+                    print(f"   ✅ New Chrome session created successfully")
+                
+                # Extract price and availability information
+                price_availability_info = extract_price_and_availability(driver, amazon_url)
+                
+                # Set in_stock status based on extracted information
+                store_link['in_stock'] = price_availability_info.get('in_stock', True)
+                
+                # Add product name from URL scraping at the same level as url
+                if price_availability_info.get('product_name_via_url'):
+                    store_link['product_name_via_url'] = price_availability_info['product_name_via_url']
+                    print(f"   📝 Product name: {price_availability_info['product_name_via_url'][:100]}...")
+                
+                # Only update price if in_stock is true, otherwise keep existing price
+                if store_link['in_stock']:
+                    # If price was extracted successfully, update it
+                    if price_availability_info['price'] and price_availability_info['price'] not in ["Price not found", "Error extracting price", "Currently unavailable"]:
+                        store_link['price'] = price_availability_info['price']
+                    elif 'price' not in store_link or not store_link['price']:
+                        store_link['price'] = "Price not available"
+                # If in_stock is false, keep the existing price value unchanged
+                
+                print(f"   💰 Price: {store_link['price']}")
+                print(f"   📦 Availability: {price_availability_info['availability']}")
+                print(f"   📋 In Stock: {store_link['in_stock']}")
+
+                # Record the final visited platform URL (may differ due to redirects)
                 try:
-                    driver.quit()
-                    time.sleep(2)  # Brief pause before creating new session
-                except Exception as e:
-                    logging.warning(f"Error closing previous session: {e}")
-                
-                driver = create_chrome_driver()
-                print(f"   ✅ New Chrome session created successfully")
-            
-            # Extract price and availability information
-            price_availability_info = extract_price_and_availability(driver, amazon_url)
-            
-            # Set in_stock status based on extracted information
-            store_link['in_stock'] = price_availability_info.get('in_stock', True)
-            
-            # Add product name from URL scraping at the same level as url
-            if price_availability_info.get('product_name_via_url'):
-                store_link['product_name_via_url'] = price_availability_info['product_name_via_url']
-                print(f"   📝 Product Name: {price_availability_info['product_name_via_url'][:100]}...")
-            
-            # Only update price if in_stock is true, otherwise keep existing price
-            if store_link['in_stock']:
-                # If price was extracted successfully, update it
-                if price_availability_info['price'] and price_availability_info['price'] not in ["Price not found", "Error extracting price", "Currently unavailable"]:
-                    store_link['price'] = price_availability_info['price']
-                elif 'price' not in store_link or not store_link['price']:
-                    store_link['price'] = "Price not available"
-            # If in_stock is false, keep the existing price value unchanged
-            
-            print(f"   💰 Price: {store_link['price']}")
-            print(f"   📦 Availability: {price_availability_info['availability']}")
-            print(f"   📋 In Stock: {store_link['in_stock']}")
+                    store_link['platform_url'] = driver.current_url
+                except Exception:
+                    store_link['platform_url'] = store_link.get('url', '')
 
-            # Record the final visited platform URL (may differ due to redirects)
-            try:
-                store_link['platform_url'] = driver.current_url
-            except Exception:
-                store_link['platform_url'] = store_link.get('url', '')
-
-            # Try to capture With Exchange price if present
-            try:
-                base_price_amount = extract_price_amount(store_link.get('price', ''))
-                with_exchange_price = extract_with_exchange_price_from_page(driver, base_price_amount)
-                if with_exchange_price:
-                    store_link['with_exchange_price'] = with_exchange_price
-                    print(f"   🔄 With Exchange price: {with_exchange_price}")
-                    logging.info(f"Set with_exchange_price for {amazon_url}: {with_exchange_price}")
-                else:
-                    logging.info(f"No with_exchange_price found for {amazon_url}")
-            except Exception as e:
-                logging.debug(f"Error setting with_exchange_price for {amazon_url}: {e}")
-            
-            # Get bank offers and other offers
-            offers = get_bank_offers(driver, amazon_url)
-            
-            if offers:
-                # Get product price for ranking
-                price_str = store_link.get('price', '₹0')
-                product_price = extract_price_amount(price_str)
-                
-                # Rank the offers
-                ranked_offers = analyzer.rank_offers(offers, product_price)
-                
-                # Filter out unwanted offer types (Cashback, No Cost EMI, Partner Offers)
-                # Only Bank Offers and other allowed types will be saved
-                filtered_offers = []
-                removed_count = 0
-                
-                for offer in ranked_offers:
-                    offer_type = offer.get('offer_type', '').lower()
-                    if offer_type in ['cashback', 'no cost emi', 'partner offers']:
-                        removed_count += 1
-                        logging.info(f"Removing offer type '{offer_type}' for {amazon_url}")
+                # Try to capture With Exchange price if present
+                try:
+                    base_price_amount = extract_price_amount(store_link.get('price', ''))
+                    with_exchange_price = extract_with_exchange_price_from_page(driver, base_price_amount)
+                    if with_exchange_price:
+                        store_link['with_exchange_price'] = with_exchange_price
+                        print(f"   🔄 With Exchange price: {with_exchange_price}")
+                        logging.info(f"Set with_exchange_price for {amazon_url}: {with_exchange_price}")
                     else:
-                        filtered_offers.append(offer)
+                        logging.info(f"No with_exchange_price found for {amazon_url}")
+                except Exception as e:
+                    logging.debug(f"Error setting with_exchange_price for {amazon_url}: {e}")
                 
-                # Update the store_link with filtered offers (only Bank Offers and other allowed types)
-                store_link['ranked_offers'] = filtered_offers
+                # Get bank offers and other offers
+                offers = get_bank_offers(driver, amazon_url)
                 
-                if removed_count > 0:
-                    print(f"   🗑️  Removed {removed_count} unwanted offers (Cashback/EMI/Partner)")
+                if offers:
+                    # Get product price for ranking
+                    price_str = store_link.get('price', '₹0')
+                    product_price = extract_price_amount(price_str)
+                    
+                    # Rank the offers
+                    ranked_offers = analyzer.rank_offers(offers, product_price)
+                    
+                    # Filter out unwanted offer types (Cashback, No Cost EMI, Partner Offers)
+                    # Only Bank Offers and other allowed types will be saved
+                    filtered_offers = []
+                    removed_count = 0
+                    
+                    for offer in ranked_offers:
+                        offer_type = offer.get('offer_type', '').lower()
+                        if offer_type in ['cashback', 'no cost emi', 'partner offers']:
+                            removed_count += 1
+                            logging.info(f"Removing offer type '{offer_type}' for {amazon_url}")
+                        else:
+                            filtered_offers.append(offer)
+                    
+                    # Update the store_link with filtered offers (only Bank Offers and other allowed types)
+                    store_link['ranked_offers'] = filtered_offers
+                    
+                    if removed_count > 0:
+                        print(f"   🗑️  Removed {removed_count} unwanted offers (Cashback/EMI/Partner)")
+                    
+                    print(f"   ✅ Found and ranked {len(offers)} offers, kept {len(filtered_offers)} after filtering")
+                    
+                    # Log the ranking summary for remaining offers
+                    for i, offer in enumerate(filtered_offers[:3], 1):
+                        score_display = offer['score'] if offer['score'] is not None else 'N/A'
+                        print(f"   🏆 Rank {i}: {offer['title']} (Score: {score_display}, Amount: ₹{offer['amount']})")
+                else:
+                    print(f"   ❌ No offers found")
+                    store_link['ranked_offers'] = []
+                    
+                    # Take screenshot when no offers are found
+                    take_screenshot(driver, amazon_url, "offers_not_found", "_no_offers")
                 
-                print(f"   ✅ Found and ranked {len(offers)} offers, kept {len(filtered_offers)} after filtering")
+                # Add URL to visited list after successful processing
+                append_visited_url(amazon_url, visited_urls_file)
+                visited_urls.add(amazon_url)
                 
-                # Log the ranking summary for remaining offers
-                for i, offer in enumerate(filtered_offers[:3], 1):
-                    score_display = offer['score'] if offer['score'] is not None else 'N/A'
-                    print(f"      🏆 Rank {i}: {offer['title']} (Score: {score_display}, Amount: ₹{offer['amount']})")
-            else:
-                print(f"   ❌ No offers found")
-                store_link['ranked_offers'] = []
-            
-            # Add URL to visited list after successful processing
-            append_visited_url(amazon_url, visited_urls_file)
-            visited_urls.add(amazon_url)
-            
-            # Session refreshed after each link - no counter needed
-            
-            # Save progress every 100 entries (optimized backup frequency)
-            if (idx + 1) % 100 == 0:
-                backup_file = f"{output_file}.backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-                ensure_parent_dir(backup_file)
-                with open(backup_file, 'w', encoding='utf-8') as f:
-                    json.dump(data, f, indent=2, ensure_ascii=False)
-                print(f"   💾 Progress saved to {backup_file} (every 100 URLs)")
-            
-            # Small delay between requests
-            time.sleep(2)
+                # Session refreshed after each link - no counter needed
+                
+                # Save progress every 100 entries (optimized backup frequency)
+                if (idx + 1) % 100 == 0:
+                    backup_file = f"{output_file}.backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+                    ensure_parent_dir(backup_file)
+                    with open(backup_file, 'w', encoding='utf-8') as f:
+                        json.dump(data, f, indent=2, ensure_ascii=False)
+                    print(f"   💾 Progress saved to {backup_file} (every 100 URLs)")
+                
+                # Small delay between requests
+                time.sleep(2)
+                
+            except Exception as e:
+                logging.error(f"Error processing link {idx + 1}: {e}")
+                print(f"   ❌ Error processing link: {e}")
+                
+                # Take screenshot when there's an error processing the link
+                try:
+                    take_screenshot(driver, amazon_url, "error_processing_link", f"_link_{idx + 1}")
+                except:
+                    pass  # Don't let screenshot errors stop the process
+                
+                continue
     
     except KeyboardInterrupt:
         print("\n⚠️  Interrupted! Saving progress...")
