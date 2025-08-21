@@ -1,0 +1,12 @@
+version: "3.9"
+services:
+  scraper:
+    build: .
+    image: flipkart-scraper:latest
+    volumes:
+      - ./:/app/data
+    environment:
+      - INPUT_FILE=/app/data/all_data.json
+      - FAST=1
+      - SESSION_BATCH_SIZE=150
+    command: [ "--input-file", "/app/data/all_data.json", "--fast" ]

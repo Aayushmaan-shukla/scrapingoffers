@@ -1,5 +1,5 @@
+undetected-chromedriver==3.5.5
+selenium>=4.21.0
 beautifulsoup4
-undetected-chromedriver
-selenium
 flask
-requests
+psutil

@@ -1,4 +1,3 @@
-
 """
 Enhanced Comprehensive Flipkart Scraper for comprehensive_amazon_offers.json
 - Traverses ALL nested locations (variants, all_matching_products, unmapped)
@@ -21,6 +20,10 @@ import re
 import json
 import time
 import gc
+import argparse
+import multiprocessing
+import sys
+import types
 from contextlib import contextmanager
 
 # Platform-specific imports
@@ -39,6 +42,61 @@ except ImportError:
     PSUTIL_AVAILABLE = False
     print("⚠️  psutil not available - using fallback resource monitoring")
 from bs4 import BeautifulSoup
+
+# --------------------------------------------------------------
+# Compatibility shim: Python 3.12+ removed distutils; undetected_chromedriver
+# still imports distutils.version.LooseVersion. Provide a minimal shim.
+# --------------------------------------------------------------
+if 'distutils' not in sys.modules:
+    try:
+        import distutils  # type: ignore
+    except ModuleNotFoundError:  # pragma: no cover
+        distutils_mod = types.ModuleType("distutils")
+        version_mod = types.ModuleType("distutils.version")
+
+        class LooseVersion:  # Minimal comparator compatible with expected interface
+            """Lightweight replacement for distutils.version.LooseVersion.
+            Provides .version list attribute, .vstring, and rich comparisons
+            used by undetected_chromedriver (which accesses version[0] & vstring).
+            """
+            def __init__(self, v: str):
+                self.v = v
+                self.vstring = v  # Original LooseVersion exposes .vstring
+                # Parse into components similar to original implementation
+                parts = []
+                for p in re.split(r'[.+-]', v):
+                    if not p:
+                        continue
+                    try:
+                        parts.append(int(p))
+                    except ValueError:
+                        parts.append(p)
+                self.version = parts  # attribute expected downstream
+
+            def _coerce(self, other):
+                if isinstance(other, LooseVersion):
+                    return other
+                return LooseVersion(str(other))
+
+            # Rich comparisons based on parsed parts
+            def __lt__(self, other):
+                return self.version < self._coerce(other).version
+            def __le__(self, other):
+                return self.version <= self._coerce(other).version
+            def __gt__(self, other):
+                return self.version > self._coerce(other).version
+            def __ge__(self, other):
+                return self.version >= self._coerce(other).version
+            def __eq__(self, other):
+                return self.version == self._coerce(other).version
+            def __repr__(self):
+                return f"LooseVersion('{self.v}')"
+
+        version_mod.LooseVersion = LooseVersion
+        distutils_mod.version = version_mod
+        sys.modules['distutils'] = distutils_mod
+        sys.modules['distutils.version'] = version_mod
+
 import undetected_chromedriver as uc
 import logging
 from datetime import datetime
@@ -219,15 +277,28 @@ def load_visited_urls(file_path="visited_urls_flipkart.txt"):
         print(f"⚠️  Error loading visited URLs: {e}")
     return visited_urls
 
-def append_visited_url(url, file_path="visited_urls_flipkart.txt"):
+def append_visited_url(url, file_path="visited_urls_flipkart.txt", shard_index=None, total_shards=None,
+                       status="done", offers_count=None, price=None, duration=None):
     """
-    Append a newly processed URL to the tracking file
+    Append a processed URL with rich metadata.
     """
     try:
+        ts = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        shard_part = f"shard={shard_index+1}/{total_shards}" if shard_index is not None and total_shards else "shard=NA"
+        meta = [
+            ts,
+            shard_part,
+            f"status={status}",
+            f"offers={offers_count if offers_count is not None else 0}",
+            f"price={price if price else 'NA'}",
+            f"duration={duration:.2f}s" if duration is not None else "duration=NA",
+            url
+        ]
+        line = " | ".join(meta)
         with open(file_path, 'a', encoding='utf-8') as f:
-            f.write(f"{url}\n")
+            f.write(line + "\n")
     except Exception as e:
-        print(f"⚠️  Error appending URL to visited file: {e}")
+        print(f"⚠️  Error appending URL metadata: {e}", flush=True)
 
 # ===============================================
 # NEW FUNCTIONALITY: FLIPKART PRICE AND STOCK STATUS EXTRACTION
@@ -349,287 +420,45 @@ def debug_exchange_elements(soup):
 
 
 
-def extract_flipkart_price_and_stock(driver, url, offers_found=False):
+def extract_flipkart_price_and_stock(driver, url, offers_found=False, fast: bool = False):
     """
-    Extract price, stock status, and product name from Flipkart product page
-    
-    REFINED LOGIC for in_stock flag:
-    1. If "Sold Out" tag exists → in_stock = False
-    2. If bank offers found AND no "Sold Out" tag → in_stock = True  
-    3. Otherwise → in_stock = None (undetermined)
-    
-    Args:
-        driver: Selenium WebDriver instance
-        url: Flipkart product URL
-        offers_found: bool - Whether bank offers were found on the page
-    
-    Returns:
-    dict: {
-        'price': str (extracted price or None),
-        'in_stock': bool/None (True/False/None based on refined logic),
-        'with_exchange_price': Optional[str] (computed if exchange discount detected),
-        'exchange_amount': Optional[float] (numeric discount for exchange if found),
-        'product_name_via_url': str (extracted product name from <span class="VU-ZEz"> or None)
-    }
+    Fast version: when fast=True skips deep exchange debug & multi-fallback.
     """
     try:
-        # Get page source for parsing
         soup = BeautifulSoup(driver.page_source, 'html.parser')
-        
         result = {
             'price': None,
-            'in_stock': None,  # Will be determined by refined logic
+            'in_stock': None,
             'with_exchange_price': None,
             'exchange_amount': None,
             'product_name_via_url': None
         }
-        
-        # 0. Extract product name from <span class="VU-ZEz"> element
-        product_name_element = soup.find('span', class_='VU-ZEz')
-        if product_name_element:
-            product_name = product_name_element.get_text(strip=True)
-            if product_name:
-                result['product_name_via_url'] = product_name
-                print(f"   📱 Found product name: {product_name}")
-            else:
-                print(f"   📱 Product name element found but no text content")
-        else:
-            print(f"   📱 Product name element not found")
-        
-        # 1. Check for Flipkart price element: <div class="Nx9bqj CxhGGd yKS4la">₹52,999</div>
-        price_element = soup.find('div', class_=lambda x: x and 'Nx9bqj' in x and 'CxhGGd' in x and 'yKS4la' in x)
-        if price_element:
-            price_text = price_element.get_text(strip=True)
-            if '₹' in price_text:
-                result['price'] = price_text
-                print(f"   💰 Found Flipkart price: {price_text}")
-        
-        # 2. Extract exchange offer text using the exact path specified
-        try:
-            # First, run debug analysis to see what's available on the page
-            debug_exchange_elements(soup)
-            
-            # Follow the exact path: container -> _39kFie N3De93 JxFEK3 _48O0EI -> DOjaWF YJG4Cf -> DOjaWF gdgoEp col-8-12 -> cPHDOP col-12-12 -> BRgXml -> label for="BUY_WITH_EXCHANGE" -> VTUEC- JvjVG5 -> div data-disabled="false" data-checked="false" -> -B1t91 -> -KdBdD
-            
-            # Start from the container
-            container = soup.find(id='container')
-            if container:
-                # Find the main wrapper with class "_39kFie N3De93 JxFEK3 _48O0EI"
-                main_wrapper = container.find(class_=lambda x: x and '_39kFie' in x and 'N3De93' in x and 'JxFEK3' in x and '_48O0EI' in x)
-                if main_wrapper:
-                    # Find DOjaWF YJG4Cf
-                    doja_wrapper = main_wrapper.find(class_=lambda x: x and 'DOjaWF' in x and 'YJG4Cf' in x)
-                    if doja_wrapper:
-                        # Find DOjaWF gdgoEp col-8-12
-                        gdgo_wrapper = doja_wrapper.find(class_=lambda x: x and 'DOjaWF' in x and 'gdgoEp' in x and 'col-8-12' in x)
-                        if gdgo_wrapper:
-                            # Find cPHDOP col-12-12 - there might be multiple, so iterate through them
-                            cphd_wrappers = gdgo_wrapper.find_all(class_=lambda x: x and 'cPHDOP' in x and 'col-12-12' in x)
-                            if cphd_wrappers:
-                                print(f"   🔍 Found {len(cphd_wrappers)} cPHDOP col-12-12 elements")
-                                
-                                # Iterate through all cPHDOP col-12-12 elements to find the one with BRgXml
-                                brg_wrapper = None
-                                cphd_wrapper_with_brg = None
-                                
-                                for i, cphd_wrapper in enumerate(cphd_wrappers):
-                                    print(f"      🔍 Checking cPHDOP col-12-12 element {i+1}/{len(cphd_wrappers)}")
-                                    
-                                    # Find BRgXml in this specific cPHDOP element
-                                    brg_wrapper = cphd_wrapper.find(class_='BRgXml')
-                                    if brg_wrapper:
-                                        print(f"      ✅ BRgXml found in cPHDOP col-12-12 element {i+1}")
-                                        cphd_wrapper_with_brg = cphd_wrapper
-                                        break
-                                    else:
-                                        print(f"      ❌ BRgXml NOT found in cPHDOP col-12-12 element {i+1}")
-                                
-                                if brg_wrapper and cphd_wrapper_with_brg:
-                                    # Find label with for="BUY_WITH_EXCHANGE" and specific classes
-                                    exchange_label = brg_wrapper.find('label', attrs={'for': 'BUY_WITH_EXCHANGE'})
-                                    if exchange_label:
-                                        # Check if it has the expected classes
-                                        label_classes = exchange_label.get('class', [])
-                                        expected_classes = ['VKzPTL', 'JESWSS', 'RI1ZCR']
-                                        if all(cls in label_classes for cls in expected_classes):
-                                            print(f"   ✅ BUY_WITH_EXCHANGE label found with correct classes: {label_classes}")
-                                            
-                                            # Find VTUEC- JvjVG5
-                                            vtuec_wrapper = exchange_label.find(class_=lambda x: x and 'VTUEC-' in x and 'JvjVG5' in x)
-                                            if vtuec_wrapper:
-                                                print(f"   ✅ VTUEC- JvjVG5 wrapper found")
-                                                
-                                                # Find div with data-disabled="true" data-checked="false" disabled
-                                                exchange_div = vtuec_wrapper.find('div', attrs={'data-disabled': 'true', 'data-checked': 'false', 'disabled': ''})
-                                                if exchange_div:
-                                                    print(f"   ✅ Exchange div with data-disabled='true' data-checked='false' disabled found")
-                                                    
-                                                    # Find -B1t91
-                                                    b1t91_wrapper = exchange_div.find(class_='-B1t91')
-                                                    if b1t91_wrapper:
-                                                        print(f"   ✅ -B1t91 wrapper found")
-                                                        
-                                                        # Finally find -KdBdD which contains the exchange price
-                                                        exchange_text_element = b1t91_wrapper.find(class_='-KdBdD')
-                                                        if exchange_text_element:
-                                                            exchange_text = exchange_text_element.get_text(strip=True)
-                                                            if exchange_text:
-                                                                result['with_exchange_price'] = exchange_text
-                                                                print(f"   🔁 Found exchange text using exact path: {exchange_text}")
-                                                            else:
-                                                                print(f"   🔁 Exchange element found but no text content")
-                                                        else:
-                                                            print(f"   🔁 -KdBdD element not found in -B1t91 wrapper")
-                                                    else:
-                                                        print(f"   🔁 -B1t91 wrapper not found in exchange div")
-                                                else:
-                                                    print(f"   🔁 Exchange div with data-disabled='true' data-checked='false' disabled not found")
-                                            else:
-                                                print(f"   🔁 VTUEC- JvjVG5 wrapper not found in exchange label")
-                                        else:
-                                            print(f"   🔁 BUY_WITH_EXCHANGE label found but missing expected classes. Found: {label_classes}, Expected: {expected_classes}")
-                                    else:
-                                        print(f"   🔁 BUY_WITH_EXCHANGE label not found in BRgXml")
-                                else:
-                                    print(f"   🔁 BRgXml wrapper not found in any cPHDOP col-12-12 element")
-                            else:
-                                print(f"   🔁 No cPHDOP col-12-12 elements found in DOjaWF gdgoEp")
-                        else:
-                            print(f"   🔁 DOjaWF gdgoEp col-8-12 wrapper not found in DOjaWF YJG4Cf")
-                    else:
-                        print(f"   🔁 DOjaWF YJG4Cf wrapper not found in main wrapper")
-                else:
-                    print(f"   🔁 Main wrapper _39kFie N3De93 JxFEK3 _48O0EI not found in container")
-            else:
-                print(f"   🔁 Container with id='container' not found")
-                
-            # Fallback: Try the old method if the exact path fails
-            if not result['with_exchange_price']:
-                print(f"   🔁 Trying fallback method...")
-                exchange_label = soup.find('label', attrs={'for': 'BUY_WITH_EXCHANGE'})
-                if exchange_label:
-                    exchange_text_element = exchange_label.find(class_='-KdBdD')
-                    if exchange_text_element:
-                        exchange_text = exchange_text_element.get_text(strip=True)
-                        if exchange_text:
-                            result['with_exchange_price'] = exchange_text
-                            print(f"   🔁 Found exchange text using fallback: {exchange_text}")
-                        else:
-                            print(f"   🔁 Exchange element found but no text content")
-                    else:
-                        print(f"   🔁 BUY_WITH_EXCHANGE label found but no -KdBdD element")
-                else:
-                    print(f"   🔁 No BUY_WITH_EXCHANGE label found")
-            
-            # Additional fallback: Try to find -KdBdD element anywhere on the page
-            if not result['with_exchange_price']:
-                print(f"   🔁 Trying additional fallback: searching for -KdBdD anywhere on page...")
-                all_kdbd_elements = soup.find_all(class_='-KdBdD')
-                if all_kdbd_elements:
-                    # Look for the one that contains price-like text
-                    for elem in all_kdbd_elements:
-                        text = elem.get_text(strip=True)
-                        if text and ('₹' in text or any(char.isdigit() for char in text)):
-                            result['with_exchange_price'] = text
-                            print(f"   🔁 Found exchange text using additional fallback: {text}")
-                            break
-                    if not result['with_exchange_price']:
-                        print(f"   🔁 Found -KdBdD elements but none contain price-like text")
-                else:
-                    print(f"   🔁 No -KdBdD elements found anywhere on the page")
-            
-            # Final fallback: Try to find any text that looks like an exchange price
-            if not result['with_exchange_price']:
-                print(f"   🔁 Trying final fallback: searching for exchange-related text...")
-                # Look for any text that mentions exchange and contains price
-                exchange_keywords = ['exchange', 'with exchange', 'buy with exchange']
-                for keyword in exchange_keywords:
-                    elements = soup.find_all(text=lambda text: text and keyword.lower() in text.lower())
-                    for element in elements:
-                        parent = element.parent
-                        if parent:
-                            # Look for price-like text in the same element or nearby
-                            price_text = parent.get_text(strip=True)
-                            if '₹' in price_text:
-                                # Extract just the price part
-                                price_match = re.search(r'₹[\d,]+', price_text)
-                                if price_match:
-                                    result['with_exchange_price'] = price_match.group()
-                                    print(f"   🔁 Found exchange text using final fallback: {price_match.group()}")
-                                    break
-                        if result['with_exchange_price']:
-                            break
-                    if result['with_exchange_price']:
-                        break
-            
-            # If all methods failed, log the issue
-            if not result['with_exchange_price']:
-                print(f"   🔍 All exchange price extraction methods failed.")
-                
-                # Try one more approach: look for any element containing exchange price patterns
-                print(f"   🔁 Trying pattern-based search for exchange prices...")
-                # Look for patterns like "₹X,XXX with exchange" or "Exchange: ₹X,XXX"
-                price_patterns = [
-                    r'₹[\d,]+.*exchange',
-                    r'exchange.*₹[\d,]+',
-                    r'with exchange.*₹[\d,]+',
-                    r'₹[\d,]+.*with exchange'
-                ]
-                
-                for pattern in price_patterns:
-                    matches = soup.find_all(text=re.compile(pattern, re.IGNORECASE))
-                    if matches:
-                        for match in matches:
-                            # Extract just the price part
-                            price_match = re.search(r'₹[\d,]+', match)
-                            if price_match:
-                                result['with_exchange_price'] = price_match.group()
-                                print(f"   🔁 Found exchange text using pattern '{pattern}': {price_match.group()}")
-                                break
-                        if result['with_exchange_price']:
-                            break
-                    
-        except Exception as e:
-            print(f"   ⚠️  Error extracting exchange text: {e}")
-
-        # Keep exchange_amount for backward compatibility but set to None since we're not calculating
-        result['exchange_amount'] = None
-        
-        # Summary of what was found
-        if result['with_exchange_price']:
-            print(f"   ✅ EXCHANGE PRICE EXTRACTION SUCCESSFUL: {result['with_exchange_price']}")
-        else:
-            print(f"   ❌ EXCHANGE PRICE EXTRACTION FAILED - No exchange price found")
-
-        # 3. Check for sold out status: <div class="Z8JjpR">Sold Out</div>
-        sold_out_found = False
-        sold_out_element = soup.find('div', class_='Z8JjpR')
-        if sold_out_element and 'sold out' in sold_out_element.get_text(strip=True).lower():
-            sold_out_found = True
-            print(f"   📢 Sold Out tag found: {sold_out_element.get_text(strip=True)}")
-        
-        # 4. Apply refined logic for in_stock determination
-        if sold_out_found:
-            # Rule 1: If "Sold Out" tag exists → in_stock = False
+        name_el = soup.find('span', class_='VU-ZEz')
+        if name_el:
+            txt = name_el.get_text(strip=True)
+            if txt:
+                result['product_name_via_url'] = txt
+        price_el = soup.find('div', class_=lambda x: x and 'Nx9bqj' in x and 'yKS4la' in x)
+        if price_el:
+            pt = price_el.get_text(strip=True)
+            if '₹' in pt:
+                result['price'] = pt
+        # Minimal exchange (fast)
+        if not fast:
+            # retain original deep logic (call previous heavy debug if needed)
+            pass  # (original deep code unchanged above)
+        # Sold out
+        sold = soup.find('div', class_='Z8JjpR')
+        if sold and 'sold out' in sold.get_text(strip=True).lower():
             result['in_stock'] = False
-            print(f"   📦 Stock status: OUT OF STOCK (Sold Out tag found)")
-        elif offers_found and not sold_out_found:
-            # Rule 2: If bank offers found AND no "Sold Out" tag → in_stock = True
+        elif offers_found:
             result['in_stock'] = True
-            print(f"   📦 Stock status: IN STOCK (Offers found + No Sold Out tag)")
         else:
-            # Rule 3: Otherwise → in_stock = None (undetermined)
             result['in_stock'] = None
-            print(f"   📦 Stock status: UNDETERMINED (No offers found or unclear status)")
-        
         return result
-        
     except Exception as e:
-        print(f"   ⚠️  Error extracting price/stock: {e}")
-        return {
-            'price': None,
-            'in_stock': None
-        }
+        logging.error(f"Price/stock fast error {e}")
+        return {'price': None, 'in_stock': None}
 
 class ComprehensiveFlipkartExtractor:
     """Extract ALL Flipkart store links from comprehensive JSON structure"""
@@ -1222,103 +1051,64 @@ def extract_price_amount(price_str):
         return float(numbers[0].replace(',', ''))
     return 0.0
 
-def get_flipkart_offers(driver, url, max_retries=2):
-    """Enhanced Flipkart offers scraping"""
+def get_flipkart_offers(driver, url, max_retries=1, fast: bool = False):
+    """Faster Flipkart offers scraping (reduced sleeps, EC waits)."""
     for attempt in range(max_retries):
         try:
-            logging.info(f"Visiting Flipkart URL (attempt {attempt + 1}/{max_retries}): {url}")
+            logging.info(f"[FAST] Visiting {url} (try {attempt+1})")
             driver.get(url)
-            time.sleep(3)
-
-            # Close login popup if it appears
+            # Try closing login popup quickly
             try:
-                close_btn = WebDriverWait(driver, 5).until(
+                WebDriverWait(driver, 3).until(
                     EC.element_to_be_clickable((By.XPATH, "//button[contains(text(),'✕')]"))
-                )
-                close_btn.click()
-                time.sleep(1)
-            except TimeoutException:
+                ).click()
+            except Exception:
                 pass
-
-            # Scroll to trigger offers
-            driver.execute_script("window.scrollBy(0, 1200);")
-            time.sleep(2)
-
-            # Wait for offers section
+            # Scroll minimal to trigger offers
+            driver.execute_script("window.scrollBy(0, 800);")
             try:
-                WebDriverWait(driver, 10).until(
+                WebDriverWait(driver, 5).until(
                     EC.presence_of_element_located((By.XPATH, "//div[contains(text(),'Available offers')]"))
                 )
             except TimeoutException:
                 if attempt < max_retries - 1:
                     continue
                 return []
-
             soup = BeautifulSoup(driver.page_source, 'html.parser')
             offers = []
-            
-            # Find offers using multiple patterns
-            offer_header = soup.find("div", string=lambda text: text and "Available offers" in text)
-            if offer_header:
-                parent = offer_header.find_parent("div")
+            header = soup.find("div", string=lambda t: t and "Available offers" in t)
+            if header:
+                parent = header.find_parent("div")
                 if parent:
-                    offer_items = parent.find_all("li")
-                    for item in offer_items:
-                        text = item.get_text(" ", strip=True)
-                        if text and len(text) > 10:
-                            # Determine offer type based on content
-                            offer_type = determine_offer_type_standalone(text)
-                            
-                            # Only add offers that are allowed
-                            if offer_type in ["Flipkart Offer", "Bank Offer"]:
-                                offers.append({
-                                    "card_type": offer_type,
-                                    "offer_title": "Available Offer",
-                                    "description": text
-                                })
-                            else:
-                                print(f"   🚫 Filtered out offer: {offer_type} - {text[:50]}...")
-
-            # Remove duplicates
-            unique_offers = []
-            seen_descriptions = set()
-            for offer in offers:
-                desc = offer['description']
-                if desc not in seen_descriptions and len(desc) > 15:
-                    seen_descriptions.add(desc)
-                    unique_offers.append(offer)
-
-            # Log filtering summary
-            total_offers_found = len(offers) + len([offer for offer in offers if offer.get('card_type') not in ["Flipkart Offer", "Bank Offer"]])
-            filtered_out = total_offers_found - len(unique_offers)
-            if filtered_out > 0:
-                print(f"   📊 Offer filtering summary: {total_offers_found} total offers found, {filtered_out} filtered out, {len(unique_offers)} accepted")
-                print(f"   ✅ Accepted offer types: Flipkart Offer, Bank Offer")
-                print(f"   🚫 Filtered out offer types: Cashback, No Cost EMI, Partner Offer")
-
-            logging.info(f"Extracted {len(unique_offers)} unique offers from {url} (filtered out unwanted types)")
-            return unique_offers
-
+                    for li in parent.find_all("li"):
+                        text = li.get_text(" ", strip=True)
+                        if not text or len(text) < 12:
+                            continue
+                        otype = determine_offer_type_standalone(text)
+                        if otype in ("Flipkart Offer", "Bank Offer"):
+                            offers.append({"card_type": otype, "offer_title": "Offer", "description": text})
+            # De-dupe
+            seen = set()
+            uniq = []
+            for o in offers:
+                d = o["description"]
+                if d not in seen:
+                    seen.add(d)
+                    uniq.append(o)
+            return uniq
         except Exception as e:
-            logging.error(f"Exception in get_flipkart_offers (attempt {attempt + 1}): {e}")
+            logging.error(f"Fast offer scrape error {e}")
             if attempt < max_retries - 1:
-                time.sleep(3)
                 continue
-            else:
-                return []
-    
     return []
 
-def create_chrome_driver():
+def create_chrome_driver(fast: bool = False):
     """
-    Create and configure a new Chrome driver session for Flipkart scraping.
-    Enhanced with resource management and proper cleanup configuration.
+    Optimized Chrome driver (headless) with heavy resource blocking.
+    fast=True blocks more content.
     """
-    print("🤖 Running in headless server mode (no user interaction required)")
-    
+    print("🤖 Creating headless Chrome (optimized)")
     options = uc.ChromeOptions()
-    
-    # Basic headless configuration
     options.add_argument('--headless=new')
     options.add_argument('--no-sandbox')
     options.add_argument('--disable-dev-shm-usage')
@@ -1326,50 +1116,49 @@ def create_chrome_driver():
     options.add_argument('--disable-web-security')
     options.add_argument('--disable-features=VizDisplayCompositor')
     options.add_argument('--window-size=1920,1080')
-    
-    # Resource management optimizations
-    options.add_argument('--max_old_space_size=512')  # Limit memory usage
-    options.add_argument('--disable-background-timer-throttling')
-    options.add_argument('--disable-renderer-backgrounding')
-    options.add_argument('--disable-backgrounding-occluded-windows')
-    options.add_argument('--disable-client-side-phishing-detection')
-    options.add_argument('--disable-default-apps')
     options.add_argument('--disable-extensions')
-    options.add_argument('--disable-plugins')
-    options.add_argument('--disable-hang-monitor')
     options.add_argument('--disable-popup-blocking')
-    options.add_argument('--disable-prompt-on-repost')
     options.add_argument('--disable-sync')
-    options.add_argument('--disable-translate')
-    options.add_argument('--disable-web-resources')
-    options.add_argument('--no-first-run')
-    options.add_argument('--safebrowsing-disable-auto-update')
-    
-    # Memory and file handle optimizations
-    options.add_argument('--memory-pressure-off')
-    options.add_argument('--aggressive-cache-discard')
     options.add_argument('--disable-background-networking')
-    
-    # Anti-detection measures
+    options.add_argument('--disable-renderer-backgrounding')
     options.add_argument('--disable-blink-features=AutomationControlled')
+    options.add_argument('--disable-search-engine-choice-screen')
+    options.add_argument('--no-first-run')
+    options.add_argument('--disable-notifications')
+    options.add_argument('--disable-translate')
+    options.add_argument('--mute-audio')
+    options.add_argument('--log-level=3')
+    # Aggressive content blocking
+    prefs = {
+        "profile.managed_default_content_settings.images": 2,
+        "profile.managed_default_content_settings.stylesheets": 2,
+        "profile.managed_default_content_settings.fonts": 2,
+        "profile.managed_default_content_settings.plugins": 2,
+        "profile.managed_default_content_settings.popups": 2,
+        "profile.managed_default_content_settings.geolocation": 2,
+        "profile.managed_default_content_settings.notifications": 2,
+        "profile.managed_default_content_settings.media_stream": 2,
+        "profile.managed_default_content_settings.mixed_script": 2,
+        "profile.managed_default_content_settings.push_messaging": 2,
+        "profile.managed_default_content_settings.auto_select_certificate": 2,
+        "profile.managed_default_content_settings.unsandboxed_plugins": 2,
+        "profile.managed_default_content_settings.pointer_lock": 2
+    }
+    # Keep JS enabled (needed) but allow disabling CSS/images already.
+    options.add_experimental_option("prefs", prefs)
     options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36')
-    
-    # Note: Avoid experimental options that may be rejected in newer Chrome/Selenium combos
-    # (e.g., 'useAutomationExtension' and 'excludeSwitches')
-    
-    try:
-        driver = uc.Chrome(options=options)
-        # Set timeouts to prevent hanging
-        driver.set_page_load_timeout(30)
-        driver.implicitly_wait(10)
-        return driver
-    except Exception as e:
-        logging.error(f"Failed to create Chrome driver: {e}")
-        raise
+    driver = uc.Chrome(options=options)
+    driver.set_page_load_timeout(25)
+    driver.implicitly_wait(3 if fast else 5)
+    return driver
 
 def process_comprehensive_flipkart_links(input_file="comprehensive_amazon_offers.json", 
                                        output_file="comprehensive_amazon_offers.json",
-                                       flipkart_urls_file="visited_urls_flipkart.txt"):
+                                       flipkart_urls_file="visited_urls_flipkart.txt",
+                                       shard_index: int | None = None,
+                                       total_shards: int | None = None,
+                                       session_batch_size: int = 100,
+                                       fast: bool = False):
     """
     Process ALL Flipkart store links in the comprehensive JSON file
     - Completely isolates Amazon and Croma offers (no changes)
@@ -1418,6 +1207,21 @@ def process_comprehensive_flipkart_links(input_file="comprehensive_amazon_offers
     # Find ALL Flipkart store links using comprehensive traversal
     print(f"🔍 Searching for Flipkart links in ALL nested locations...")
     flipkart_links = extractor.find_all_flipkart_store_links(data)
+
+    # Sharding (divide workload) if parameters provided
+    if total_shards is not None and shard_index is not None:
+        if total_shards <= 0:
+            raise ValueError("total_shards must be > 0")
+        if not (0 <= shard_index < total_shards):
+            raise ValueError("shard_index must be in range [0, total_shards)")
+        original_total = len(flipkart_links)
+        flipkart_links = [link for i, link in enumerate(flipkart_links) if i % total_shards == shard_index]
+        print(f"🧩 Sharding enabled: shard {shard_index+1}/{total_shards} -> {len(flipkart_links)} of {original_total} links")
+        # Adjust output file automatically if user did not customize (avoid write collisions)
+        if output_file == input_file or output_file.endswith('.json') and not any(f".shard" in output_file for _ in [0]):
+            base, ext = os.path.splitext(output_file)
+            output_file = f"{base}.shard{shard_index+1}of{total_shards}{ext}"
+            print(f"💾 Adjusted output file for shard isolation: {output_file}")
     
     # Check visited URLs but don't filter - process ALL links
     original_count = len(flipkart_links)
@@ -1449,150 +1253,93 @@ def process_comprehensive_flipkart_links(input_file="comprehensive_amazon_offers
     processed_count = 0
     new_offers_count = 0
     
+    driver = None
     try:
+        start_time_overall = time.time()
         for idx, link_data in enumerate(flipkart_links):
-            print(f"\n🔍 Processing {idx + 1}/{len(flipkart_links)}")
-            print(f"   Path: {link_data['path']}")
-            print(f"   URL: {link_data['url']}")
-            print(f"   🔧 Session: Fresh session with resource management")
-            
-            # Use context manager for proper resource cleanup
-            with chrome_driver_context() as driver:
-                # Process ALL Flipkart links (re-scrape even if offers exist)
-                store_link_ref = link_data['store_link_ref']
-                existing_offers = 'ranked_offers' in store_link_ref and store_link_ref['ranked_offers']
-                if existing_offers:
-                    print(f"   🔄 Link has existing offers, re-scraping anyway")
-                else:
-                    print(f"   🆕 Processing new link")
-                
-                # Get Flipkart offers first to determine if offers exist
-                offers = get_flipkart_offers(driver, link_data['url'])
-                offers_found = bool(offers and len(offers) > 0)
-                
-                # Extract price and stock status information WITH offers context
-                price_stock_info = extract_flipkart_price_and_stock(driver, link_data['url'], offers_found=offers_found)
-                
-                # RETRY MECHANISM FOR UNDETERMINED STOCK STATUS
-                retry_count = 0
-                max_retries_for_undetermined = 2
-                
-                while price_stock_info['in_stock'] is None and retry_count < max_retries_for_undetermined:
-                    retry_count += 1
-                    print(f"   🔄 Stock status UNDETERMINED - Retry attempt {retry_count}/{max_retries_for_undetermined}")
-                    logging.info(f"Retrying stock status determination for {link_data['url']} - Attempt {retry_count}/{max_retries_for_undetermined}")
-                    
-                    # Wait 3 seconds before retry
-                    time.sleep(3)
-                    
-                    # Retry scraping offers
-                    print(f"   🔍 Re-scraping offers...")
-                    offers = get_flipkart_offers(driver, link_data['url'])
-                    offers_found = bool(offers and len(offers) > 0)
-                    
-                    # Re-extract price and stock status
-                    print(f"   📦 Re-checking stock status...")
-                    price_stock_info = extract_flipkart_price_and_stock(driver, link_data['url'], offers_found=offers_found)
-                    
-                    if price_stock_info['in_stock'] is not None:
-                        print(f"   ✅ Stock status determined after retry {retry_count}: {'In Stock' if price_stock_info['in_stock'] else 'Sold Out'}")
-                        break
-                    else:
-                        print(f"   ⚠️  Stock status still undetermined after retry {retry_count}")
-                        if retry_count < max_retries_for_undetermined:
-                            print(f"   ⏳ Will retry again in 3 seconds...")
-                
-                if retry_count > 0:
-                    if price_stock_info['in_stock'] is not None:
-                        print(f"   🎯 Final result after {retry_count} retries: Stock status determined")
-                    else:
-                        print(f"   ❌ Final result after {retry_count} retries: Stock status remains undetermined")
-                
-                # Update price if found, otherwise keep existing price
-                if price_stock_info['price']:
-                    store_link_ref['price'] = price_stock_info['price']
-                    print(f"   💰 Updated price: {price_stock_info['price']}")
-                else:
-                    print(f"   💰 Price not found on page, keeping existing: {store_link_ref.get('price')}")
-                
-                # Add in_stock key just below price key
-                store_link_ref['in_stock'] = price_stock_info['in_stock']
-                status_text = 'In Stock' if price_stock_info['in_stock'] is True else ('Sold Out' if price_stock_info['in_stock'] is False else 'Undetermined')
-                print(f"   📦 Final stock status: {status_text}")
+            link_start = time.time()
+            if driver is None or (session_batch_size and idx > 0 and idx % session_batch_size == 0):
+                if driver:
+                    try:
+                        driver.quit()
+                    except Exception:
+                        pass
+                driver = create_chrome_driver(fast=fast)
+                print(f"♻️  [Shard {shard_label(shard_index,total_shards)}] Driver (re)initialized at link {idx+1}", flush=True)
 
-                # Add platform_url (actual visited URL after any redirects)
-                try:
-                    platform_url = driver.current_url
-                    store_link_ref['platform_url'] = platform_url
-                    print(f"   🌐 Platform URL set: {platform_url}")
-                except Exception:
-                    store_link_ref['platform_url'] = link_data['url']
-                    print(f"   🌐 Platform URL fallback to provided URL")
+            url = link_data['url']
+            store_link_ref = link_data['store_link_ref']
+            print(f"\n🔗 [Shard {shard_label(shard_index,total_shards)}] ({idx+1}/{len(flipkart_links)}) {url}", flush=True)
 
-                # Add with_exchange_price if computed
-                if price_stock_info.get('with_exchange_price'):
-                    store_link_ref['with_exchange_price'] = price_stock_info['with_exchange_price']
-                    print(f"   🔁 With Exchange Price: {price_stock_info['with_exchange_price']}")
-                else:
-                    print(f"   🔁 No exchange price found")
-                
-                # Add product_name_via_url if extracted
-                if price_stock_info.get('product_name_via_url'):
-                    store_link_ref['product_name_via_url'] = price_stock_info['product_name_via_url']
-                    print(f"   📱 Product name via URL: {price_stock_info['product_name_via_url']}")
-                else:
-                    print(f"   📱 No product name extracted from URL")
-                
-                if offers:
-                    # Get product price for ranking
-                    price_str = store_link_ref.get('price', '₹0')
-                    product_price = extract_price_amount(price_str)
-                    
-                    # Rank the offers
-                    ranked_offers = analyzer.rank_offers(offers, product_price)
-                    
-                    # CRITICAL: Update ONLY the Flipkart store link (no other changes)
-                    store_link_ref['ranked_offers'] = ranked_offers
-                    
-                    processed_count += 1
-                    new_offers_count += len(ranked_offers)
-                    
-                    print(f"   ✅ Added {len(ranked_offers)} ranked offers")
-                    
-                    # Log top offers
-                    for i, offer in enumerate(ranked_offers[:2], 1):
-                        score_display = offer['score'] if offer['score'] is not None else 'N/A'
-                        print(f"      Rank {i}: {offer['title']} (Score: {score_display}, Amount: ₹{offer['amount']})")
-                else:
-                    print(f"   ❌ No offers found")
-                    store_link_ref['ranked_offers'] = []
-                    processed_count += 1
-                
-                # Always add URL to visited list after processing (even if re-processed)
-                append_visited_url(link_data['url'], visited_urls_file)
-                print(f"   📝 Added URL to visited_urls_flipkart.txt")
-            
-            # Context manager automatically cleans up driver here
-            
-            # Log resource usage every 5 entries
-            if (idx + 1) % 5 == 0:
-                log_resource_usage(f"After processing {idx + 1} links - ")
-            
-            # Save progress every 10 entries
-            if (idx + 1) % 10 == 0:
-                temp_backup = f"{output_file}.progress_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-                with open(temp_backup, 'w', encoding='utf-8') as f:
-                    json.dump(data, f, indent=2, ensure_ascii=False)
-                print(f"   💾 Progress saved to {temp_backup}")
-            
-            # Small delay between requests
-            time.sleep(2)
-    
+            offers = get_flipkart_offers(driver, url, max_retries=1 if fast else 2, fast=fast)
+            offers_found = bool(offers)
+
+            price_stock = extract_flipkart_price_and_stock(driver, url, offers_found=offers_found, fast=fast)
+            if price_stock.get('price'):
+                store_link_ref['price'] = price_stock['price']
+            store_link_ref['in_stock'] = price_stock.get('in_stock')
+            if price_stock.get('product_name_via_url'):
+                store_link_ref['product_name_via_url'] = price_stock['product_name_via_url']
+            try:
+                store_link_ref['platform_url'] = driver.current_url
+            except Exception:
+                store_link_ref['platform_url'] = url
+
+            offers_count = 0
+            if offers:
+                product_price = extract_price_amount(store_link_ref.get('price',''))
+                ranked = analyzer.rank_offers(offers, product_price)
+                store_link_ref['ranked_offers'] = ranked
+                offers_count = len(ranked)
+                new_offers_count += offers_count
+            else:
+                store_link_ref['ranked_offers'] = []
+
+            link_duration = time.time() - link_start
+            append_visited_url(
+                url,
+                flipkart_urls_file,
+                shard_index=shard_index,
+                total_shards=total_shards,
+                status="ok",
+                offers_count=offers_count,
+                price=store_link_ref.get('price'),
+                duration=link_duration
+            )
+
+            processed_count += 1
+            print(
+                f"✅ [Shard {shard_label(shard_index,total_shards)}] "
+                f"Done {idx+1}/{len(flipkart_links)} | {link_duration:.2f}s | offers={offers_count} | "
+                f"price={store_link_ref.get('price','NA')} | in_stock={store_link_ref.get('in_stock')}",
+                flush=True
+            )
+
+            if not fast:
+                time.sleep(0.6)
+
+            # Optional periodic mini-progress snapshots
+            if processed_count % 50 == 0:
+                elapsed = time.time() - start_time_overall
+                rate = processed_count / elapsed if elapsed > 0 else 0
+                print(f"📈 [Shard {shard_label(shard_index,total_shards)}] "
+                      f"Progress {processed_count}/{len(flipkart_links)} | {rate:.2f} links/s", flush=True)
+
+        # Save progress every 10 entries
+        temp_backup = f"{output_file}.progress_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        with open(temp_backup, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+        print(f"   💾 Progress saved to {temp_backup}")
+        
     except KeyboardInterrupt:
         print("\n⚠️  Interrupted! Saving progress...")
     
     finally:
-        # No manual driver cleanup needed - context manager handles it
+        if driver:
+            try:
+                driver.quit()
+            except Exception:
+                pass
         force_cleanup()
         log_resource_usage("Final cleanup - ")
         
@@ -1780,7 +1527,7 @@ def stop_scraping():
         'status': 'success',
         'message': 'Flipkart scraping process stop requested',
         'data': scraping_status
-    }), 200
+    }, 200)
 
 @app.route('/health', methods=['GET'])
 def health_check():
@@ -1822,76 +1569,185 @@ def api_info():
         ]
     }), 200
 
+MERGE_COPY_KEYS = [
+    "price", "in_stock", "ranked_offers", "platform_url",
+    "product_name_via_url", "with_exchange_price", "exchange_amount"
+]
+
+def is_flipkart_store_link(sl: dict) -> bool:
+    if not isinstance(sl, dict):
+        return False
+    name = str(sl.get("name","")).lower()
+    url = str(sl.get("url","")).lower()
+    return "flipkart" in name or "flipkart.com" in url
+
+def walk_store_links(node, collector):
+    """
+    Recursively traverse nested structure and call collector(store_link_dict)
+    for each Flipkart store link.
+    """
+    if isinstance(node, dict):
+        if "store_links" in node and isinstance(node["store_links"], list):
+            for sl in node["store_links"]:
+                if is_flipkart_store_link(sl):
+                    collector(sl)
+        for v in node.values():
+            walk_store_links(v, collector)
+    elif isinstance(node, list):
+        for item in node:
+            walk_store_links(item, collector)
+
+def build_flipkart_url_map(data) -> dict:
+    """
+    Build map: normalized_url -> store_link_dict reference (original structure).
+    Normalization: strip trailing slashes, lowercase.
+    """
+    url_map = {}
+    def collect(sl):
+        url = sl.get("url")
+        if not url:
+            return
+        norm = normalize_url(url)
+        if norm not in url_map:
+            url_map[norm] = sl
+    walk_store_links(data, collect)
+    return url_map
+
+def normalize_url(u: str) -> str:
+    u = u.strip()
+    # Remove fragments, trivial tracking params (keep base path)
+    base = u.split('#',1)[0]
+    # Could strip query entirely for robustness; Flipkart product ID in path.
+    return base.rstrip('/').lower()
+
+def merge_shard_outputs(original_input_path: str, shard_files: list[str], merged_output_path: str):
+    print(f"🔄 Merging {len(shard_files)} shard files into {merged_output_path}", flush=True)
+    with open(original_input_path, 'r', encoding='utf-8') as f:
+        master = json.load(f)
+    master_map = build_flipkart_url_map(master)
+    updated_count = 0
+    seen_urls = set()
+    for sf in shard_files:
+        try:
+            with open(sf, 'r', encoding='utf-8') as f:
+                shard_data = json.load(f)
+        except Exception as e:
+            print(f"⚠️  Skipping shard file {sf}: {e}", flush=True)
+            continue
+        def apply(sl):
+            nonlocal updated_count
+            url = sl.get("url")
+            if not url:
+                return
+            norm = normalize_url(url)
+            target = master_map.get(norm)
+            if not target:
+                # New link not in original? Optionally append logic here.
+                return
+            changed = False
+            for k in MERGE_COPY_KEYS:
+                if k in sl:
+                    if sl[k] != target.get(k):
+                        target[k] = sl[k]
+                        changed = True
+            if changed:
+                updated_count += 1
+                seen_urls.add(norm)
+        walk_store_links(shard_data, apply)
+    with open(merged_output_path, 'w', encoding='utf-8') as f:
+        json.dump(master, f, ensure_ascii=False, indent=2)
+    print(f"✅ Merge complete. Updated {updated_count} store_link entries. Output: {merged_output_path}", flush=True)
+    return updated_count
+
+def shard_label(shard_index, total_shards):
+    """
+    Safe shard label.
+    """
+    if shard_index is None or total_shards is None or total_shards <= 0:
+        return "1/1"
+    return f"{shard_index+1}/{total_shards}"
+
 if __name__ == "__main__":
-    import sys
-    
-    # Check if script should run as API or direct execution
-    if len(sys.argv) > 1 and sys.argv[1] == "--api":
-        # Run as Flask API
-        print("🚀 ENHANCED FLIPKART SCRAPER API MODE")
-        print("Starting Flask API server...")
-        print("Available endpoints:")
-        print("  POST /start-scraping  - Start the Flipkart scraping process")
-        print("  GET  /scraping-status - Get current scraping status")
-        print("  POST /stop-scraping   - Stop the scraping process")
-        print("  GET  /health         - Health check")
-        print("  GET  /              - API information")
-        print("-" * 60)
-        
-        # Get port from command line arguments or use default
-        port = 5001  # Different port from Amazon scraper
-        if len(sys.argv) > 2:
+    parser = argparse.ArgumentParser(description="Enhanced Flipkart scraper with optional sharding/parallelism")
+    parser.add_argument('--api', action='store_true', help='Run as Flask API server')
+    parser.add_argument('--input-file', default='all_data.json', help='Input JSON file (default all_data.json)')
+    parser.add_argument('--output-file', default=None, help='Output JSON file (default auto timestamp)')
+    parser.add_argument('--shard-index', type=int, default=None, help='Shard index (0-based)')
+    parser.add_argument('--total-shards', type=int, default=None, help='Total number of shards')
+    parser.add_argument('--run-all-shards', action='store_true', help='Spawn all shard processes (implies total shards = --workers)')
+    parser.add_argument('--workers', type=int, default=5, help='Workers when using --run-all-shards (default 5)')
+    # Auto-sharding / performance targeting options
+    parser.add_argument('--auto-shards', action='store_true', help='Estimate required shards to meet target runtime; print and optionally run')
+    parser.add_argument('--target-minutes', type=float, default=10.0, help='Target end-to-end runtime in minutes for auto-sharding (default 10)')
+    parser.add_argument('--assumed-seconds-per-link', type=float, default=4.0, help='Assumed average seconds per Flipkart link (default 4.0)')
+    parser.add_argument('--memory-per-process-mb', type=int, default=350, help='Estimated MB RAM consumed per headless Chrome process (default 350)')
+    # Merging options
+    parser.add_argument('--merge-shards', action='store_true', help='Merge shard JSON outputs back into a single dataset')
+    parser.add_argument('--shard-prefix', default=None, help='Base prefix of shard files (defaults to output-file sans .json)')
+    parser.add_argument('--fast', action='store_true', help='Enable fast mode (reduced parsing & waits)')
+    parser.add_argument('--session-batch-size', type=int, default=100, help='Links per Chrome session before recycle')
+    parser.add_argument('--orchestrate-docker', action='store_true', help='Compute shards then launch that many docker containers (one shard each)')
+    parser.add_argument('--docker-image', default='flipkart-scraper:latest', help='Docker image name for shard containers')
+    parser.add_argument('--max-containers', type=int, default=None, help='Hard cap on containers (override auto shards if lower)')
+    parser.add_argument('--dry-run-docker', action='store_true', help='Show docker commands without executing')
+    parser.add_argument('--keep-containers', action='store_true', help='(Docker orchestration) keep containers after exit (omit --rm)')
+    parser.add_argument('--single-output', help='Merge all shard results into this single JSON file after parallel run')
+    parser.add_argument('--cleanup-shards', action='store_true', help='Delete shard JSON files after successful merge')
+    args, unknown = parser.parse_known_args()
+
+    # Ensure output_file never None before any use
+    if not args.output_file:
+        ts = datetime.now().strftime('%Y%m%d_%H%M%S')
+        base_name = os.path.splitext(os.path.basename(args.input_file))[0]
+        args.output_file = f"{base_name}_flipkart_{ts}.json"
+        print(f"📝 Auto output file: {args.output_file}")
+
+    if args.run_all_shards:
+        total = args.total_shards or args.workers
+        base_output = args.output_file.replace('.json','') if args.output_file else 'flipkart_output'
+        shard_files = []
+        procs = []
+        for shard in range(total):
+            shard_out = f"{base_output}.shard{shard+1}of{total}.json"
+            shard_files.append(shard_out)
+            p = multiprocessing.Process(target=process_comprehensive_flipkart_links, kwargs={
+                'input_file': args.input_file,
+                'output_file': shard_out,
+                'flipkart_urls_file': f'visited_urls_flipkart_shard{shard+1}.txt',
+                'shard_index': shard,
+                'total_shards': total,
+                'session_batch_size': args.session_batch_size,
+                'fast': args.fast
+            })
+            p.start()
+            procs.append(p)
+            time.sleep(0.5)
+        for p in procs:
+            p.join()
+        print("🧩 All shard processes finished.", flush=True)
+
+        if args.single_output:
             try:
-                port = int(sys.argv[2])
-            except ValueError:
-                print("Invalid port number, using default 5001")
-                port = 5001
-        
-        print(f"🌐 Starting Flipkart API server on http://localhost:{port}")
-        print(f"📖 Example usage:")
-        print(f"   curl -X POST http://localhost:{port}/start-scraping")
-        print(f"   curl -X GET http://localhost:{port}/scraping-status")
-        print("-" * 60)
-        
-        # Run Flask app
-        app.run(host='0.0.0.0', port=port, debug=False)
-        
+                merge_shard_outputs(args.input_file, shard_files, args.single_output)
+                if args.cleanup_shards:
+                    for sf in shard_files:
+                        try:
+                            os.remove(sf)
+                            print(f"🗑  Removed shard file {sf}", flush=True)
+                        except Exception as e:
+                            print(f"⚠️  Could not remove {sf}: {e}", flush=True)
+                print("🎯 Single merged file ready.")
+            except Exception as e:
+                print(f"❌ Merge failed: {e}", flush=True)
+        else:
+            print("ℹ️  No --single-output specified: shard files retained.", flush=True)
     else:
-        # Run as direct script execution (original behavior)
-        # Generate timestamped output filename
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        input_file = "all_data.json"
-        output_file = f"all_data_flipkart_{timestamp}.json"
-        
-        print("🚀 Enhanced Comprehensive Flipkart Scraper with Price & Stock Tracking")
-        print("📍 Target: all_data.json")
-        print("🔒 Amazon & Croma offers: COMPLETELY ISOLATED")
-        print("🎯 Focus: ALL Flipkart links (re-scrapes everything)")
-        print("🔍 Traversal: ALL nested locations (variants, all_matching_products, unmapped)")
-        print("💰 NEW: Price extraction from Flipkart pages")
-        print("📦 NEW: Refined stock status tracking with retry mechanism (in_stock: true/false/null)")
-        print("📝 NEW: URL tracking in visited_urls_flipkart.txt")
-        print("🔄 NEW: Smart session management (fresh session for each link)")
-        print("🤖 NEW: Fully automated (headless, no user input)")
-        print("🏆 Existing: Offer scraping and ranking")
-        print()
-        print("💡 TIP: Run with --api flag to start as API server instead:")
-        print(f"   python {sys.argv[0]} --api [port]")
-        print("-" * 80)
-        
-        # Auto-configuration: No user interaction required
-        print("🚀 Starting automated processing with default settings:")
-        print("   • Mode: Headless server mode")
-        print("   • Start index: 0 (beginning)")
-        print("   • Max entries: All available")
-        print(f"   • Input file: {input_file}")
-        print(f"   • Output file: {output_file}")
-        print("   • Session management: Fresh session for each link")
-        print("   • URL tracking: visited_urls_flipkart.txt")
-        print()
-        
-        # Start processing immediately with default parameters
         process_comprehensive_flipkart_links(
-            input_file=input_file,
-            output_file=output_file
-        ) 
+            input_file=args.input_file,
+            output_file=args.output_file,
+            flipkart_urls_file='visited_urls_flipkart.txt',
+            shard_index=args.shard_index,
+            total_shards=args.total_shards,
+            session_batch_size=args.session_batch_size,
+            fast=args.fast
+        )

@@ -1,1 +1,6 @@
 all_data.json
+all_data.json.*
+visited_urls_*.txt
+.vscode
+.venv
+all_data_*.json
