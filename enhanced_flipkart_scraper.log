@@ -1,0 +1,497 @@
+2025-08-21 12:48:40,934 WARNING: Could not create backup for C:\Projects\python\scrapingoffers\all_data.json: [WinError 32] The process cannot access the file because it is being used by another process
+2025-08-21 12:48:40,996 WARNING: Could not create backup for C:\Projects\python\scrapingoffers\all_data.json: [WinError 32] The process cannot access the file because it is being used by another process
+2025-08-21 12:48:49,752 WARNING: Could not create backup for C:\Projects\python\scrapingoffers\all_data.json: [WinError 32] The process cannot access the file because it is being used by another process
+2025-08-21 12:48:49,756 WARNING: Could not create backup for C:\Projects\python\scrapingoffers\all_data.json: [WinError 32] The process cannot access the file because it is being used by another process
+2025-08-21 12:48:49,824 WARNING: Could not create backup for C:\Projects\python\scrapingoffers\all_data.json: [WinError 32] The process cannot access the file because it is being used by another process
+2025-08-21 12:49:18,286 INFO: Initial system state - Resource usage: 2/2048 open files, 148.6MB memory
+2025-08-21 12:49:18,118 INFO: Initial system state - Resource usage: 2/2048 open files, 94.2MB memory
+2025-08-21 12:49:23,558 INFO: patching driver executable C:\Users\ssenp\appdata\roaming\undetected_chromedriver\undetected_chromedriver.exe
+2025-08-21 12:49:30,538 INFO: Initial system state - Resource usage: 2/2048 open files, 133.9MB memory
+2025-08-21 12:49:31,752 INFO: Initial system state - Resource usage: 2/2048 open files, 140.9MB memory
+2025-08-21 12:49:32,813 INFO: patching driver executable C:\Users\ssenp\appdata\roaming\undetected_chromedriver\undetected_chromedriver.exe
+2025-08-21 12:49:33,235 INFO: Final cleanup - Resource usage: 2/2048 open files, 202.0MB memory
+2025-08-21 12:49:36,138 INFO: Final cleanup - Resource usage: 2/2048 open files, 204.0MB memory
+2025-08-21 12:49:42,584 INFO: Initial system state - Resource usage: 3/2048 open files, 186.2MB memory
+2025-08-21 12:49:43,042 INFO: Initial system state - Resource usage: 3/2048 open files, 186.7MB memory
+2025-08-21 12:49:43,972 INFO: [FAST] Visiting http://www.flipkart.com/samsung-galaxy-s24-5g-cobalt-violet-256-gb/p/itm46fc37ddc7255?pid=MOBGX2F3GDX7QYFT&lid=LSTMOBGX2F3GDX7QYFT0XBGDS&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:49:44,119 INFO: Initial system state - Resource usage: 3/2048 open files, 186.5MB memory
+2025-08-21 12:49:44,169 INFO: Initial system state - Resource usage: 3/2048 open files, 185.7MB memory
+2025-08-21 12:49:46,708 INFO: Initial system state - Resource usage: 3/2048 open files, 151.2MB memory
+2025-08-21 12:49:51,724 INFO: patching driver executable C:\Users\ssenp\appdata\roaming\undetected_chromedriver\undetected_chromedriver.exe
+2025-08-21 12:50:03,860 INFO: Final cleanup - Resource usage: 3/2048 open files, 189.6MB memory
+2025-08-21 12:50:03,861 INFO: Final cleanup - Resource usage: 3/2048 open files, 189.7MB memory
+2025-08-21 12:50:03,867 INFO: Final cleanup - Resource usage: 3/2048 open files, 189.7MB memory
+2025-08-21 12:50:03,882 INFO: Final cleanup - Resource usage: 3/2048 open files, 189.8MB memory
+2025-08-21 12:53:43,923 WARNING: Could not create backup for C:\Projects\python\scrapingoffers\all_data.json: [WinError 32] The process cannot access the file because it is being used by another process
+2025-08-21 12:53:52,796 WARNING: Could not create backup for C:\Projects\python\scrapingoffers\all_data.json: [WinError 32] The process cannot access the file because it is being used by another process
+2025-08-21 12:53:52,781 WARNING: Could not create backup for C:\Projects\python\scrapingoffers\all_data.json: [WinError 32] The process cannot access the file because it is being used by another process
+2025-08-21 12:54:55,974 INFO: Initial system state - Resource usage: 2/2048 open files, 69.8MB memory
+2025-08-21 12:55:00,949 INFO: patching driver executable C:\Users\ssenp\appdata\roaming\undetected_chromedriver\undetected_chromedriver.exe
+2025-08-21 12:55:07,185 INFO: Initial system state - Resource usage: 2/2048 open files, 20.5MB memory
+2025-08-21 12:55:13,619 INFO: patching driver executable C:\Users\ssenp\appdata\roaming\undetected_chromedriver\undetected_chromedriver.exe
+2025-08-21 12:55:14,700 INFO: [FAST] Visiting http://www.flipkart.com/samsung-galaxy-s24-5g-cobalt-violet-256-gb/p/itm46fc37ddc7255?pid=MOBGX2F3GDX7QYFT&lid=LSTMOBGX2F3GDX7QYFT0XBGDS&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:55:29,864 INFO: [FAST] Visiting http://www.flipkart.com/samsung-galaxy-z-flip7-fe-5g-white-256-gb/p/itm1e2b0640833d3?pid=MOBHD92UH6CDHVRX&lid=LSTMOBHD92UH6CDHVRX6OEVAL&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:55:39,404 INFO: [FAST] Visiting http://www.flipkart.com/samsung-galaxy-a14-5g-black-128-gb/p/itm05c0df9819b1d?pid=MOBGHT8UAKCPR6ZH&lid=LSTMOBGHT8UAKCPR6ZHB5FXTV&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:55:40,508 INFO: Initial system state - Resource usage: 0/2048 open files, 2.7MB memory
+2025-08-21 12:55:41,533 WARNING: could not detect version_main.therefore, we are assuming it is chrome 108 or higher
+2025-08-21 12:55:54,182 INFO: [FAST] Visiting http://www.flipkart.com/samsung-galaxy-a14-5g-light-green-128-gb/p/itmc1460acfc7733?pid=MOBH92ADPZEDJUJ5&lid=LSTMOBH92ADPZEDJUJ5NWWHT2&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:55:58,450 INFO: Initial system state - Resource usage: 3/2048 open files, 178.7MB memory
+2025-08-21 12:55:58,520 INFO: Initial system state - Resource usage: 3/2048 open files, 92.5MB memory
+2025-08-21 12:55:58,750 WARNING: could not detect version_main.therefore, we are assuming it is chrome 108 or higher
+2025-08-21 12:55:58,816 WARNING: could not detect version_main.therefore, we are assuming it is chrome 108 or higher
+2025-08-21 12:56:02,925 INFO: [FAST] Visiting https://www.flipkart.com/samsung-galaxy-s24-5g-cobalt-violet-512-gb/p/itmdbe5ac49590db (try 1)
+2025-08-21 12:56:04,921 INFO: [FAST] Visiting http://www.flipkart.com/samsung-galaxy-s24-5g-onyx-black-256-gb/p/itm325da4a26d7bb?pid=MOBGX2F3HVJYNHUV&lid=LSTMOBGX2F3HVJYNHUVP4L3WU&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:56:06,966 INFO: [FAST] Visiting http://www.flipkart.com/tecno-pova-7-pro-5g-geek-black-256-gb/p/itm0445d5aa95ced?pid=MOBHD8ZJFZUKJGBB&lid=LSTMOBHD8ZJFZUKJGBBUIWHPD&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:56:07,202 INFO: Initial system state - Resource usage: 1/2048 open files, 139.0MB memory
+2025-08-21 12:56:08,065 WARNING: could not detect version_main.therefore, we are assuming it is chrome 108 or higher
+2025-08-21 12:56:11,966 INFO: Initial system state - Resource usage: 3/2048 open files, 130.8MB memory
+2025-08-21 12:56:13,420 INFO: [FAST] Visiting https://www.flipkart.com/vivo-x-fold5-titanium-gray-512-gb/p/itm7a261c3ce8590 (try 1)
+2025-08-21 12:56:16,330 INFO: Initial system state - Resource usage: 3/2048 open files, 69.9MB memory
+2025-08-21 12:56:18,209 WARNING: could not detect version_main.therefore, we are assuming it is chrome 108 or higher
+2025-08-21 12:56:20,340 INFO: [FAST] Visiting http://www.flipkart.com/oneplus-nord-5-phantom-grey-256-gb/p/itma9ab5953fa9b9?pid=MOBHDWVPQXZJEH69&lid=LSTMOBHDWVPQXZJEH69RDEHRP&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:56:23,679 INFO: [FAST] Visiting https://www.flipkart.com/samsung-horseback/p/itmb74863855064a?pid=MOBHD92UH6CDHVRX&ctx=eyJjYXJkQ29udGV4dCI6eyJhdHRyaWJ1dGVzIjp7InNvdXJjZUNvbnRlbnRUeXBlIjp7InNpbmdsZVZhbHVlQXR0cmlidXRlIjp7ImtleSI6InNvdXJjZUNvbnRlbnRUeXBlIiwiaW5mZXJlbmNlVHlwZSI6IlNDVCIsInZhbHVlIjoiQUQiLCJ2YWx1ZVR5cGUiOiJTSU5HTEVfVkFMVUVEIn19fX19&nnc=P2CF48U5RE2E_AD (try 1)
+2025-08-21 12:56:26,758 INFO: [FAST] Visiting http://www.flipkart.com/tecno-pova-7-pro-5g-neon-cyan-256-gb/p/itm0445d5aa95ced?pid=MOBHD8ZJCUMY42KG&lid=LSTMOBHD8ZJCUMY42KG4J7GGM&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:56:27,780 INFO: [FAST] Visiting http://www.flipkart.com/redmi-12-5g-moonstone-silver-128-gb/p/itm0c8ba13f6fc5b?pid=MOBGZF9P9TWKG2HT&lid=LSTMOBGZF9P9TWKG2HTIHYVUD&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:56:29,961 INFO: [FAST] Visiting https://www.flipkart.com/redmi-note-12-pro-5g-onyx-black-256-gb/p/itm80b4635a4af30?pid=MOBGZF9PJ597B8ZK&lid=LSTMOBGZF9PJ597B8ZKFCKZ40&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:56:31,271 INFO: [FAST] Visiting http://www.flipkart.com/oppo-reno14-5g-pearl-white-256-gb/p/itm4d9e853eee6cf?pid=MOBHDDQ9UFJESUYC&lid=LSTMOBHDDQ9UFJESUYCPLJL1V&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:56:31,316 INFO: [FAST] Visiting http://www.flipkart.com/oppo-reno14-5g-forest-green-256-gb/p/itm4d9e853eee6cf?pid=MOBHDDQ9UMHXGZ8P&lid=LSTMOBHDDQ9UMHXGZ8PSJYKX7&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:56:32,759 INFO: [FAST] Visiting https://www.flipkart.com/samsung-galaxy-a14-5g-black-128-gb/p/itm05c0df9819b1d?pid=MOBGHT8UAKCPR6ZH&cmpid=product.share.pp&_refId=PP.7e90dea7-b669-4704-8ff0-7b862b150bf3.MOBGHT8UAKCPR6ZH (try 1)
+2025-08-21 12:56:36,276 INFO: [FAST] Visiting http://www.flipkart.com/oppo-reno14-5g-mint-green-256-gb/p/itm4d9e853eee6cf?pid=MOBHE8NEFNSEZ4BB&lid=LSTMOBHE8NEFNSEZ4BBDVBFMV&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:56:37,467 INFO: [FAST] Visiting https://www.flipkart.com/samsung-galaxy-a14-5g-dark-red-64-gb/p/itm611d564f53b48?pid=MOBGHT8UURBKHWME&lid=LSTMOBGHT8UURBKHWMEMOXSW1&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:56:38,723 INFO: [FAST] Visiting https://www.flipkart.com/samsung-galaxy-a14-5g-dark-red-64-gb/p/itm611d564f53b48 (try 1)
+2025-08-21 12:56:41,475 INFO: [FAST] Visiting http://www.flipkart.com/samsung-galaxy-a14-5g-black-128-gb/p/itm432710a1c1cff?pid=MOBGPN52VYJNH3MP&lid=LSTMOBGPN52VYJNH3MPSKS3PI&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:56:42,838 INFO: [FAST] Visiting https://www.flipkart.com/samsung-a14-5g-green-128-gb/p/itm7a6691c57b33b?pid=MOBGSEHTAEYKCZNK (try 1)
+2025-08-21 12:56:47,655 INFO: [FAST] Visiting http://www.flipkart.com/redmi-13c-5g-starlight-black-128-gb/p/itm996fbc603ec3c?pid=MOBGW6S7PW5NSC35&lid=LSTMOBGW6S7PW5NSC35PYNMRT&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:56:47,675 INFO: [FAST] Visiting http://www.flipkart.com/samsung-galaxy-a14-5g-light-green-128-gb/p/itma725b4aad1d7b?pid=MOBGHT8UFVE7F82Z&lid=LSTMOBGHT8UFVE7F82Z69QT0K&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:56:50,181 INFO: [FAST] Visiting https://www.flipkart.com/product/p/itme?pid=MOBGNE4SXSWFUKEQ (try 1)
+2025-08-21 12:56:50,647 INFO: [FAST] Visiting https://www.flipkart.com/samsung-galaxy-a54-5g-awesome-graphite-128-gb/p/itm3474dcb32e38b?pid=MOBGNE4SFB9HPZST&cmpid=product.share.pp&_refId=PP.313b46c2-c29d-4d02-a893-e112987322b5.MOBGNE4SFB9HPZST (try 1)
+2025-08-21 12:56:53,961 INFO: [FAST] Visiting http://www.flipkart.com/samsung-galaxy-a54-5g-awesome-lime-256-gb/p/itmfae1e9dfaa4a0?pid=MOBGNE4STRDFQHDH&lid=LSTMOBGNE4STRDFQHDHJ8LAUH&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:56:53,999 INFO: [FAST] Visiting https://www.flipkart.com/samsung-galaxy-a14-5g-dark-red-128-gb/p/itma8393faabfb76?pid=MOBGHT8UUUNXNYZ4&cmpid=product.share.pp&_refId=PP.adca46bd-7edd-45de-a241-b0a3540fb18c.MOBGHT8UUUNXNYZ4&lid=LSTMOBGHT8UUUNXNYZ4QUY1LJ (try 1)
+2025-08-21 12:56:54,429 INFO: [FAST] Visiting https://www.flipkart.com/oneplus-nord-blue-marble-256-gb/p/itm3f93c90430130?pid=MOBFUE5HUU5ZYGRY&lid=LSTMOBFUE5HUU5ZYGRYVWJ3NM&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:56:54,629 INFO: [FAST] Visiting https://www.flipkart.com/vivo-x-fold5-titanium-gray-512-gb/p/itm7a261c3ce8590?pid=MOBHDT6U6MEFZ7TB&param=5431&BU=Mobile (try 1)
+2025-08-21 12:57:01,643 INFO: [FAST] Visiting http://www.flipkart.com/vivo-t4-lite-5g-charger-box-titanium-gold-256-gb/p/itm9886d6e522c4b?pid=MOBHDY9FNTHSYQCV&lid=LSTMOBHDY9FNTHSYQCVKD0GFP&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:57:05,892 INFO: [FAST] Visiting http://www.flipkart.com/oneplus-nord-5-phantom-grey-256-gb/p/itma9ab5953fa9b9?pid=MOBHDWVPQXZJEH69&lid=LSTMOBHDWVPQXZJEH69ADATHT&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:57:06,444 INFO: [FAST] Visiting http://www.flipkart.com/oneplus-nord-5-5g-dry-ice-256-gb/p/itme333f56ade583?pid=MOBHDVQDPMYUHZRE&lid=LSTMOBHDVQDPMYUHZREZCG93B&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:57:06,468 INFO: [FAST] Visiting http://www.flipkart.com/vivo-t4-lite-5g-charger-box-prism-blue-256-gb/p/itm9886d6e522c4b?pid=MOBHDY9FPSBK8D4E&lid=LSTMOBHDY9FPSBK8D4EG11UHE&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:57:12,534 INFO: [FAST] Visiting https://www.flipkart.com/samsung-galaxy-f55-5g-raisin-black-128-gb/p/itmf0394cdb68411?pid=MOBHY9N796YGFJY2&cmpid=product.share.pp&_refId=PP.c9dd22cf-b381-4a9f-b76d-957b7d270392.MOBHY9N796YGFJY2 (try 1)
+2025-08-21 12:57:12,842 INFO: [FAST] Visiting https://www.flipkart.com/oneplus-nord-gray-onyx-128-gb/p/itm3f93c90430130 (try 1)
+2025-08-21 12:57:13,263 INFO: [FAST] Visiting https://www.flipkart.com/oneplus-nord-blue-marble-256-gb/p/itm49f817b591982?pid=MOBFUE5HUU5ZYGRY&lid=LSTMOBFUE5HUU5ZYGRY81ZTBC&marketplace=FLIPKART&store=tyy/4io&srno=b_1_13&otracker=browse&fm=organic&iid=f63dbef7-9144-41df-9c36-c6ca1c205170.MOBFUE5HUU5ZYGRY.SEARCH&ppt=None&ppn=None&ssid=mf8rzoake80000001687118058785 (try 1)
+2025-08-21 12:57:13,378 INFO: [FAST] Visiting http://www.flipkart.com/oneplus-13s-5g-black-velvet-256-gb/p/itmb6d10cf953b5d?pid=MOBHCTQTGUGEJHMG&lid=LSTMOBHCTQTGUGEJHMGJPKHKD&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:57:17,898 INFO: [FAST] Visiting https://www.flipkart.com/oneplus-nord-blue-marble-256-gb/p/itm3f93c90430130?pid=MOBFUE5HUU5ZYGRY&lid=LSTMOBFUE5HUU5ZYGRYVWJ3NM&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:57:18,488 INFO: [FAST] Visiting https://www.flipkart.com/redmi-note-12-pro-5g-glacier-blue-256-gb/p/itm62978004cf8a8?pid=MOBGH2UVHWEZKFX2&lid=LSTMOBGH2UVHWEZKFX2SGSTT4&marketplace=FLIPKART&store=tyy/4io&srno=b_1_12&otracker=browse&fm=organic&iid=3bd0d9c1-2e3e-4437-8b3b-44ff99ee16e1.MOBGH2UVHWEZKFX2.SEARCH&ppt=None&ppn=None&ssid=dc0bzcvt0w0000001691335185157 (try 1)
+2025-08-21 12:57:25,547 INFO: [FAST] Visiting http://www.flipkart.com/oneplus-nord-5-5g-phantom-grey-256-gb/p/itme333f56ade583?pid=MOBHDWSNEYEG5THQ&lid=LSTMOBHDWSNEYEG5THQCJIHZI&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:57:27,871 INFO: [FAST] Visiting http://www.flipkart.com/redmi-13c-5g-starlight-black-128-gb/p/itm996fbc603ec3c?pid=MOBGW6S7PW5NSC35&lid=LSTMOBGW6S7PW5NSC35TRPQPY&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:57:30,520 INFO: [FAST] Visiting https://www.flipkart.com/redmi-note-12-pro-5g-onyx-black-256-gb/p/itm7aa76c2f3f28e?pid=MOBGRV6HTGFAYHDE&lid=LSTMOBGRV6HTGFAYHDEKHADUV (try 1)
+2025-08-21 12:57:32,465 INFO: [FAST] Visiting https://www.flipkart.com/product/p/itme?pid=MOBGH2UVWWDA4MS6 (try 1)
+2025-08-21 12:57:32,487 INFO: [FAST] Visiting https://www.flipkart.com/redmi-note-12-pro-5g-stardust-purple-256-gb/p/itmb3d6f68dfb5d2?pid=MOBGH2UVFMVF8PHG&lid=LSTMOBGH2UVFMVF8PHG7AX4Z1&marketplace=FLIPKART&store=all/tyy/4io&srno=b_1_17&otracker=browse&fm=organic&iid=c09a8ec4-e092-44bd-a554-7d0e2f3308f7.MOBGH2UVFMVF8PHG.SEARCH&ppt=None&ppn=None&ssid=5ctoaquk000000001691434130712 (try 1)
+2025-08-21 12:57:32,748 INFO: [FAST] Visiting https://www.flipkart.com/redmi-note-12-pro-5g-stardust-purple-256-gb/p/itmb3d6f68dfb5d2?pid=MOBGH2UVFMVF8PHG&lid=LSTMOBGH2UVFMVF8PHGSDDKSJ&marketplace=FLIPKART&store=tyy/4io&srno=b_1_22&otracker=browse&fm=organic&iid=01b2f4f8-5016-4451-b8e1-b475d80afa51.MOBGH2UVFMVF8PHG.SEARCH&ppt=None&ppn=None&ssid=6b89hg7w400000001693150336563 (try 1)
+2025-08-21 12:57:34,930 INFO: [FAST] Visiting https://www.flipkart.com/redmi-12-pastel-blue-128-gb/p/itm48719506a7ceb (try 1)
+2025-08-21 12:57:37,235 INFO: [FAST] Visiting https://www.flipkart.com/oneplus-nord-blue-marble-256-gb/p/itm3f93c90430130?pid=MOBFUE5HUU5ZYGRY&cmpid=product.share.pp&_refId=PP.6b9888dd-238a-4ad6-ace9-97e11d84f1b0.MOBFUE5HUU5ZYGRY (try 1)
+2025-08-21 12:57:38,929 INFO: [FAST] Visiting http://www.flipkart.com/oneplus-nord-ce5-5g-black-infinity-128-gb/p/itm9259708fe4e3c?pid=MOBHEYWZAGYMPFRP&lid=LSTMOBHEYWZAGYMPFRPE5P02P&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:57:42,215 INFO: [FAST] Visiting http://www.flipkart.com/oneplus-nord-ce5-5g-black-infinity-128-gb/p/itm9259708fe4e3c?pid=MOBHEYWZAGYMPFRP&lid=LSTMOBHEYWZAGYMPFRPYPSSNJ&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:57:44,914 INFO: [FAST] Visiting https://www.flipkart.com/pelonis-as823e4j-s-23-l-convection-microwave-oven/p/itme7mye5tnyk3n9?pid=MOBHB3T9PWMEHZST (try 1)
+2025-08-21 12:57:44,914 INFO: [FAST] Visiting http://www.flipkart.com/oneplus-nord-ce5-5g-black-infinity-128-gb/p/itm9259708fe4e3c?pid=MOBHEYWZAGYMPFRP&lid=LSTMOBHEYWZAGYMPFRPOLVOAC&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:57:46,183 INFO: [FAST] Visiting https://www.flipkart.com/redmi-note-12-pro-5g-stardust-purple-256-gb/p/itme6dedc5344f2a?pid=MOBGRV6HCF8BQEYQ&cmpid=product.share.pp&_refId=PP.572c0867-77ea-492c-99b2-fb169b0844bb.MOBGRV6HCF8BQEYQ&lid=LSTMOBGRV6HCF8BQEYQAQI4XA (try 1)
+2025-08-21 12:57:48,163 INFO: [FAST] Visiting https://www.flipkart.com/samsung-galaxy-a15-5g-light-blue-256-gb/p/itm8de3d00d2b7c9?pid=MOBGWD85RHZSPFVZ&cmpid=product.share.pp&_refId=PP.2c4cdee4-11f7-4437-92f1-b54a9947de73.MOBGWD85RHZSPFVZ&lid=LSTMOBGWD85RHZSPFVZEBUX9D (try 1)
+2025-08-21 12:57:48,897 INFO: [FAST] Visiting http://www.flipkart.com/oneplus-13-black-eclipse-256-gb/p/itmb4659fd2a037f?pid=MOBH8CHRK3WUWSDX&lid=LSTMOBH8CHRK3WUWSDXVILALU&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:57:52,241 INFO: [FAST] Visiting http://www.flipkart.com/motorola-edge-60-5g-pantone-shamrock-256-gb/p/itm18a81b952d716?pid=MOBHB3T9PWMEHZST&lid=LSTMOBHB3T9PWMEHZSTSRIU0G&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:57:52,256 INFO: [FAST] Visiting http://www.flipkart.com/oneplus-nord-ce5-5g-nexus-blue-128-gb/p/itm9259708fe4e3c?pid=MOBHEYWZJTSYPHBM&lid=LSTMOBHEYWZJTSYPHBMWIXOIQ&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:57:56,333 INFO: [FAST] Visiting http://www.flipkart.com/oneplus-nord-ce5-5g-black-infinity-128-gb/p/itm9259708fe4e3c?pid=MOBHEYWZAGYMPFRP&lid=LSTMOBHEYWZAGYMPFRPATYGZG&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:58:01,791 INFO: [FAST] Visiting http://www.flipkart.com/samsung-galaxy-f16-5g-vibing-blue-128-gb/p/itm21ffc210450ff?pid=MOBH9ASGPYCDE8VA&lid=LSTMOBH9ASGPYCDE8VAEXUXDN&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:58:05,964 INFO: [FAST] Visiting http://www.flipkart.com/motorola-edge-60-fusion-5g-pantone-zephyr-256-gb/p/itmc9dbbd784b6bc?pid=MOBH9ARFURQ8U2ZF&lid=LSTMOBH9ARFURQ8U2ZF2HUBRS&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:58:09,779 INFO: [FAST] Visiting https://www.flipkart.com/redmi-note-12-pro-5g-onyx-black-128-gb/p/itme8f9e57a69716?pid=MOBGZF9PYZHPTZGK&lid=LSTMOBGZF9PYZHPTZGKBPKSCJ&marketplace=FLIPKART&hl_lid&q=Redmi+Note+15+Pro+Max+5g&store=tyy/4io (try 1)
+2025-08-21 12:58:09,786 INFO: [FAST] Visiting http://www.flipkart.com/oneplus-13s-5g-green-silk-512-gb/p/itmb6d10cf953b5d?pid=MOBHCTQTES4SHKGW&lid=LSTMOBHCTQTES4SHKGWG79Q0H&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:58:09,788 INFO: [FAST] Visiting http://www.flipkart.com/oneplus-13s-5g-green-silk-256-gb/p/itmb6d10cf953b5d?pid=MOBHCTQTDPZH7ZYT&lid=LSTMOBHCTQTDPZH7ZYTV9RZDL&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:58:11,732 INFO: [FAST] Visiting http://www.flipkart.com/lava-blaze-amoled-sapphire-blue-128-gb/p/itm94e3f57921c19?pid=MOBHBKHGYGHSUGAY&lid=LSTMOBHBKHGYGHSUGAYLLI4R8&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:58:15,783 INFO: [FAST] Visiting http://www.flipkart.com/oneplus-13s-5g-black-velvet-512-gb/p/itmb6d10cf953b5d?pid=MOBHCTQTGYXAYZXH&lid=LSTMOBHCTQTGYXAYZXH1AWA7B&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:58:15,815 INFO: [FAST] Visiting http://www.flipkart.com/samsung-galaxy-a15-5g-blue-black-256-gb/p/itmb5e76be018c8d?pid=MOBGWD85UZC8C3V8&lid=LSTMOBGWD85UZC8C3V892JEP0&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:58:18,648 INFO: [FAST] Visiting https://www.flipkart.com/samsung-galaxy-a15-5g-blue-black-256-gb/p/itmb5e76be018c8d?pid=MOBGWD85UZC8C3V8&cmpid=product.share.pp&_refId=PP.92e2bd77-04b5-4e2d-ade6-aaad0e3375b5.MOBGWD85UZC8C3V8&lid=LSTMOBGWD85UZC8C3V8AXJ2SY (try 1)
+2025-08-21 12:58:18,582 INFO: [FAST] Visiting https://www.flipkart.com/samsung-galaxy-a15-5g-light-blue-256-gb/p/itm8de3d00d2b7c9?pid=MOBGWD85RHZSPFVZ&cmpid=product.share.pp&_refId=PP.ef78494e-bea8-4115-ba23-e66caa1837b6.MOBGWD85RHZSPFVZ&lid=LSTMOBGWD85RHZSPFVZEBUX9D (try 1)
+2025-08-21 12:58:27,886 INFO: [FAST] Visiting https://www.flipkart.com/redmi-note-12-pro-5g-onyx-black-256-gb/p/itm8a52c0347c7f2 (try 1)
+2025-08-21 12:58:28,395 INFO: [FAST] Visiting https://www.flipkart.com/samsung-galaxy-a15-5g-blue-black-256-gb/p/itmb5e76be018c8d?pid=MOBGWD85UZC8C3V8&lid=LSTMOBGWD85UZC8C3V8H90TO7&marketplace=FLIPKART (try 1)
+2025-08-21 12:58:33,916 INFO: [FAST] Visiting http://www.flipkart.com/samsung-galaxy-f16-5g-vibing-blue-128-gb/p/itm21ffc210450ff?pid=MOBH9ASGPYCDE8VA&lid=LSTMOBH9ASGPYCDE8VAEXUXDN&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:58:34,254 INFO: [FAST] Visiting http://www.flipkart.com/samsung-galaxy-f16-5g-vibing-blue-128-gb/p/itmc59882b14985a?pid=MOBH9ASG42S7QZ6P&lid=LSTMOBH9ASG42S7QZ6PM3IJJ8&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:58:34,254 INFO: [FAST] Visiting https://www.flipkart.com/samsung-galaxy-a15-5g-light-blue-128-gb/p/itm79e4e714448cb?pid=MOBGWD85AZH3BRSS&lid=LSTMOBGWD85AZH3BRSSJTERTF&marketplace=FLIPKART&hl_lid&q=Samsung+Galaxy+A33+5G+Light+Blue&store=tyy/4io (try 1)
+2025-08-21 12:58:36,414 INFO: [FAST] Visiting http://www.flipkart.com/redmi-12-5g-jade-black-128-gb/p/itma9b37bec7de7e?pid=MOBGS7GYGUAJ4UYZ&lid=LSTMOBGS7GYGUAJ4UYZD6DUXB&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:58:36,840 INFO: [FAST] Visiting http://www.flipkart.com/samsung-galaxy-f16-5g-vibing-blue-128-gb/p/itma31262afa7505?pid=MOBH9ASGCZNFQGDG&lid=LSTMOBH9ASGCZNFQGDGYXWIQD&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:58:40,185 INFO: [FAST] Visiting https://www.flipkart.com/redmi-note-12-pro-5g-stardust-purple-128-gb/p/itma88d1ee67f41c (try 1)
+2025-08-21 12:58:40,960 INFO: [FAST] Visiting http://www.flipkart.com/samsung-galaxy-f16-5g-bling-black-128-gb/p/itm36dc1b01d7f0c?pid=MOBH9ASGXEYAEJDE&lid=LSTMOBH9ASGXEYAEJDEO5XLUM&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:58:43,227 INFO: [FAST] Visiting https://www.flipkart.com/redmi-note-12-pro-5g-stardust-purple-128-gb/p/itm26c8ff9d1f226 (try 1)
+2025-08-21 12:58:43,662 INFO: [FAST] Visiting http://www.flipkart.com/samsung-galaxy-a15-5g-blue-128-gb/p/itm06604fe9b8276?pid=MOBGWD85AZCYWPYW&lid=LSTMOBGWD85AZCYWPYWJYW7FE&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:58:44,521 INFO: [FAST] Visiting http://www.flipkart.com/samsung-galaxy-f14-5g-omg-black-128-gb/p/itmae94033406fb2?pid=MOBGNBFNE6KGXCCR&lid=LSTMOBGNBFNE6KGXCCRI4IJPB&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:58:46,145 INFO: [FAST] Visiting http://www.flipkart.com/samsung-galaxy-f16-5g-glam-green-128-gb/p/itm74165546d7c6c?pid=MOBH9ASGGCVWXXCW&lid=LSTMOBH9ASGGCVWXXCWXWAURI&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:58:49,323 INFO: [FAST] Visiting http://www.flipkart.com/samsung-galaxy-f16-5g-glam-green-128-gb/p/itm05d1354ab28a9?pid=MOBH9ASGHHWYPHRF&lid=LSTMOBH9ASGHHWYPHRFHONIBZ&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:58:49,400 INFO: [FAST] Visiting https://www.flipkart.com/redmi-note-12-pro-5g-stardust-purple-256-gb/p/itme6dedc5344f2a?pid=MOBGRV6HCF8BQEYQ&lid=LSTMOBGRV6HCF8BQEYQMCJTL7&marketplace=FLIPKART&store=tyy/4io&srno=b_1_7&otracker=browse&fm=organic&iid=27741fd2-e97f-471d-a8de-e683f48c0c1f.MOBGRV6HCF8BQEYQ.SEARCH&ppt=None&ppn=None&ssid=g5jdqp6g1c0000001695725088111 (try 1)
+2025-08-21 12:58:50,994 INFO: [FAST] Visiting http://www.flipkart.com/samsung-galaxy-f16-5g-glam-green-128-gb/p/itmcdb73c7370f76?pid=MOBH9ASGDGWZV69Z&lid=LSTMOBH9ASGDGWZV69ZTSJAUH&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:58:53,133 INFO: [FAST] Visiting https://www.flipkart.com/redmi-note-12-pro-5g-onyx-black-256-gb/p/itmf88cb4b03840e?pid=MOBGZF9PFMSQQC4H&lid=LSTMOBGZF9PFMSQQC4HWJHK60&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:58:55,944 INFO: [FAST] Visiting https://www.flipkart.com/redmi-note-12-pro-5g-stardust-purple-128-gb/p/itm5c263b91bc0d7?pid=MOBGH2UVWGPENHHR&cmpid=product.share.pp&_refId=PP.f29ca68d-92eb-4bbe-bf21-a5a83674a0ed.MOBGH2UVWGPENHHR&lid=LSTMOBGH2UVWGPENHHRTFRBCM (try 1)
+2025-08-21 12:58:56,182 INFO: [FAST] Visiting https://www.flipkart.com/samsung-galaxy-f14-5g-omg-black-128-gb/p/itmae94033406fb2?pid=MOBGNBFNE6KGXCCR&cmpid=product.share.pp&_refId=PP.8bdeac10-8278-4714-90ba-6805b8d6ff3b.MOBGNBFNE6KGXCCR&lid=LSTMOBGNBFNE6KGXCCRXLTXS7 (try 1)
+2025-08-21 12:58:56,410 INFO: [FAST] Visiting https://www.flipkart.com/redmi-note-12-pro-5g-onyx-black-256-gb/p/itm80b4635a4af30?pid=MOBGZF9PJ597B8ZK&lid=LSTMOBGZF9PJ597B8ZKFCKZ40&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:58:59,738 INFO: [FAST] Visiting http://www.flipkart.com/samsung-galaxy-f16-5g-vibing-blue-128-gb/p/itmc59882b14985a?pid=MOBH9ASG42S7QZ6P&lid=LSTMOBH9ASG42S7QZ6PM3IJJ8&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:58:59,783 INFO: [FAST] Visiting https://www.flipkart.com/samsung-galaxy-f14-5g-goat-green-128-gb/p/itm538a06ee7dc98?pid=MOBGNBFN6EZTDAPU&lid=LSTMOBGNBFN6EZTDAPU7HAR6Q&marketplace=FLIPKART&store=tyy/4io&srno=b_1_11&otracker=browse&fm=organic&iid=e25c2229-6aa2-40e6-8340-bc1a19f2fc29.MOBGNBFN6EZTDAPU.SEARCH&ppt=None&ppn=None&ssid=ar084iczw00000001719886492069 (try 1)
+2025-08-21 12:59:02,156 INFO: [FAST] Visiting https://www.flipkart.com/samsung-galaxy-z-fold7-5g-blue-shadow-256-gb/p/itm06b2e57a2d896?pid=MOBHD92UDNGABEHQ&lid=LSTMOBHD92UDNGABEHQ3F9XJE&marketplace=FLIPKART (try 1)
+2025-08-21 12:59:06,120 INFO: [FAST] Visiting https://www.flipkart.com/samsung-galaxy-f14-5g-omg-black-128-gb/p/itmae94033406fb2?pid=MOBGNBFNE6KGXCCR&cmpid=product.share.pp&_refId=PP.3bafd090-41bb-4e6a-b196-5b83a16e1792.MOBGNBFNE6KGXCCR&lid=LSTMOBGNBFNE6KGXCCRXLTXS7 (try 1)
+2025-08-21 12:59:06,785 INFO: [FAST] Visiting https://www.flipkart.com/samsung-galaxy-f14-5g-goat-green-128-gb/p/itm032d1a69999cc?pid=MOBGNBFNDPGNJ7HY&param=87687&ctx=eyJjYXJkQ29udGV4dCI6eyJhdHRyaWJ1dGVzIjp7InNvdXJjZUNvbnRlbnRUeXBlIjp7InNpbmdsZVZhbHVlQXR0cmlidXRlIjp7ImtleSI6InNvdXJjZUNvbnRlbnRUeXBlIiwiaW5mZXJlbmNlVHlwZSI6IlNDVCIsInZhbHVlIjoiSUFEIiwidmFsdWVUeXBlIjoiU0lOR0xFX1ZBTFVFRCJ9fX19fQ%3D%3D&nnc=O4EY4CHAKFR4_IAD (try 1)
+2025-08-21 12:59:08,876 INFO: [FAST] Visiting https://www.flipkart.com/samsung-galaxy-f14-5g-goat-green-128-gb/p/itm538a06ee7dc98?pid=MOBGNBFN6EZTDAPU&cmpid=product.share.pp&_refId=PP.62b25a1f-8992-4190-b1a6-82a296a0e074.MOBGNBFN6EZTDAPU&lid=LSTMOBGNBFN6EZTDAPU7HAR6Q (try 1)
+2025-08-21 12:59:12,003 INFO: [FAST] Visiting https://www.flipkart.com/redmi-note-12-pro-5g-stardust-purple-256-gb/p/itmb3d6f68dfb5d2?pid=MOBGH2UVFMVF8PHG&lid=LSTMOBGH2UVFMVF8PHG7AX4Z1&marketplace=FLIPKART&store=all/tyy/4io&srno=b_1_17&otracker=browse&fm=organic&iid=c09a8ec4-e092-44bd-a554-7d0e2f3308f7.MOBGH2UVFMVF8PHG.SEARCH&ppt=None&ppn=None&ssid=5ctoaquk000000001691434130712 (try 1)
+2025-08-21 12:59:12,335 INFO: [FAST] Visiting https://www.flipkart.com/samsung-galaxy-z-fold7-5g-jetblack-512-gb/p/itmca2ab6b81df51?pid=MOBHD92UW4HGDYTZ (try 1)
+2025-08-21 12:59:13,007 INFO: [FAST] Visiting https://www.flipkart.com/poco-f7-5g/p/itm632bdcafce49a?pid=MOBHCY2UKRWAA6TH&param=77657&ctx=eyJjYXJkQ29udGV4dCI6eyJhdHRyaWJ1dGVzIjp7InNvdXJjZUNvbnRlbnRUeXBlIjp7InNpbmdsZVZhbHVlQXR0cmlidXRlIjp7ImtleSI6InNvdXJjZUNvbnRlbnRUeXBlIiwiaW5mZXJlbmNlVHlwZSI6IlNDVCIsInZhbHVlIjoiSUFEIiwidmFsdWVUeXBlIjoiU0lOR0xFX1ZBTFVFRCJ9fX19fQ%3D%3D&nnc=SD5CRP259G0O_IAD (try 1)
+2025-08-21 12:59:14,814 INFO: [FAST] Visiting http://www.flipkart.com/tecno-spark-10-5g-meta-blue-128-gb/p/itm4dd6a1d87542a?pid=MOBGZRFE95VMVWZ8&lid=LSTMOBGZRFE95VMVWZ8VCHJQG&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:59:18,240 INFO: [FAST] Visiting https://www.flipkart.com/samsung-galaxy-z-fold7-5g-silver-shadow-256-gb/p/itm80780506616fb?pid=MOBHD92UDC8B9TGX (try 1)
+2025-08-21 12:59:18,492 INFO: [FAST] Visiting https://www.flipkart.com/product/p/itme?pid=MOBGNBFN6EZTDAPU (try 1)
+2025-08-21 12:59:18,647 INFO: [FAST] Visiting https://www.flipkart.com/samsung-galaxy-f14-5g-b-a-e-purple-128-gb/p/itmb10cf3ff01be8?pid=MOBGNBFNHKNP8XFG&cmpid=product.share.pp&_refId=PP.35a44245-7f8c-432a-b571-0ec8d2549bd9.MOBGNBFNHKNP8XFG (try 1)
+2025-08-21 12:59:20,971 INFO: [FAST] Visiting https://www.flipkart.com/samsung-galaxy-a25-5g-yellow-256-gb/p/itm0225df5882663?pid=MOBGWD85JJX2A6ZS&lid=LSTMOBGWD85JJX2A6ZSXPWMJ7&marketplace=FLIPKART (try 1)
+2025-08-21 12:59:21,086 INFO: [FAST] Visiting http://www.flipkart.com/poco-f7-5g-cyber-silver-edition-512-gb/p/itmf6202c82636c8?pid=MOBHCY2UNHPV79CT&lid=LSTMOBHCY2UNHPV79CTF42XYA&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:59:21,853 INFO: [FAST] Visiting https://www.flipkart.com/poco-f7-5g-frost-white-512-gb/p/itmc9c46413c5044?pid=MOBHCY2UZRUEBVGT (try 1)
+2025-08-21 12:59:24,437 INFO: [FAST] Visiting https://www.flipkart.com/samsung-galaxy-f14-5g-b-a-e-purple-128-gb/p/itmb10cf3ff01be8?pid=MOBGNBFNHKNP8XFG&cmpid=product.share.pp&_refId=PP.1b7e1deb-47c5-42e1-9558-7d357d5621dc.MOBGNBFNHKNP8XFG&lid=LSTMOBGNBFNHKNP8XFGW6VKDB (try 1)
+2025-08-21 12:59:25,646 INFO: [FAST] Visiting https://www.flipkart.com/tecno-spark-10-5g-meta-black-128-gb/p/itm9be67d939c0e7 (try 1)
+2025-08-21 12:59:28,043 INFO: [FAST] Visiting http://www.flipkart.com/realme-c71-sea-blue-128-gb/p/itm920c5c8761871?pid=MOBHDFVJGDDJ2MAX&lid=LSTMOBHDFVJGDDJ2MAX9EHA4E&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:59:28,178 INFO: [FAST] Visiting https://www.flipkart.com/samsung-galaxy-a25-5g-yellow-128-gb/p/itm0225df5882663?pid=MOBGWD85EF6STNGF&lid=LSTMOBGWD85EF6STNGFPU4O3R&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:59:29,904 INFO: [FAST] Visiting http://www.flipkart.com/tecno-pova-7-5g-geek-black-128-gb/p/itmf66f1c493f942?pid=MOBHD8ZJGGW3W9BP&lid=LSTMOBHD8ZJGGW3W9BPJMRMXR&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:59:30,571 INFO: [FAST] Visiting https://www.flipkart.com/poco-f7-5g-frost-white-512-gb/p/itmc9c46413c5044?pid=MOBHCY2UZRUEBVGT (try 1)
+2025-08-21 12:59:31,372 INFO: [FAST] Visiting https://www.flipkart.com/poco-f7-5g-cyber-silver-edition-256-gb/p/itm0a92514f731ea?pid=MOBHCY2UKRWAA6TH&marketplace=FLIPKART&cmpid=product.share.pp&_refId=PP.f8058f26-dc06-433f-9e90-7d02779712d8.MOBHCY2UKRWAA6TH&lid=LSTMOBHCY2UKRWAA6THFGSJWF (try 1)
+2025-08-21 12:59:33,707 INFO: [FAST] Visiting http://www.flipkart.com/vivo-y400-pro-5g-nebula-purple-256-gb/p/itme20aaec2a68e9?pid=MOBHCN9UZYMPZ3WZ&lid=LSTMOBHCN9UZYMPZ3WZGBBAGA&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:59:34,378 INFO: [FAST] Visiting https://www.flipkart.com/samsung-galaxy-s23-ultra-5g-green-1-tb/p/itm96a0c71a2f65e?pid=MOBGMFFX7SAEQFDH&affid=haribabul2 (try 1)
+2025-08-21 12:59:36,916 INFO: [FAST] Visiting https://www.flipkart.com/samsung-galaxy-s23-ultra-5g-green-1-tb/p/itm96a0c71a2f65e?pid=MOBGMFFX7SAEQFDH&cmpid=product.share.pp&_refId=PP.6a7d8054-1c8c-4c04-b128-4523c576cf4e.MOBGMFFX7SAEQFDH&lid=LSTMOBGMFFX7SAEQFDHGDTOOQ (try 1)
+2025-08-21 12:59:37,188 INFO: [FAST] Visiting https://www.flipkart.com/samsung-galaxy-a25-5g-blue-black-128-gb/p/itm082b4aadfa749?pid=MOBGWD85RGSZGD5B&lid=LSTMOBGWD85RGSZGD5BPCRGI4&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:59:37,416 INFO: [FAST] Visiting https://www.flipkart.com/samsung-galaxy-a25-5g-blue-black-256-gb/p/itm2a8153e01ba0b?pid=MOBGWD85GWN24TJH&cmpid=product.share.pp&_refId=PP.e8c45b48-2749-49da-b506-e7fbabc4508d.MOBGWD85GWN24TJH&lid=LSTMOBGWD85GWN24TJHBQUALU (try 1)
+2025-08-21 12:59:37,636 INFO: [FAST] Visiting https://www.flipkart.com/samsung-galaxy-a25-5g-yellow-256-gb/p/itm0225df5882663?pid=MOBGWD85JJX2A6ZS (try 1)
+2025-08-21 12:59:40,654 INFO: [FAST] Visiting https://www.flipkart.com/samsung-galaxy-s23-5g/p/itm6d0dde02bcf9b (try 1)
+2025-08-21 12:59:45,690 INFO: [FAST] Visiting http://www.flipkart.com/tecno-pova-7-5g-oasis-green-256-gb/p/itmf66f1c493f942?pid=MOBHD8ZJMRTQH6DD&lid=LSTMOBHD8ZJMRTQH6DD7B2WN4&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:59:46,002 INFO: [FAST] Visiting http://www.flipkart.com/tecno-pova-7-5g-magic-silver-128-gb/p/itmf66f1c493f942?pid=MOBHD8ZJRB5HXV6M&lid=LSTMOBHD8ZJRB5HXV6MY1UM3Q&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:59:46,569 INFO: [FAST] Visiting https://www.flipkart.com/pelonis-as823e4j-s-23-l-convection-microwave-oven/p/itme7mye5tnyk3n9?pid=MOBGMFFXXSZEF3VV (try 1)
+2025-08-21 12:59:48,512 INFO: [FAST] Visiting http://www.flipkart.com/vivo-y400-pro-5g-fest-gold-128-gb/p/itme20aaec2a68e9?pid=MOBHCN9UQEHVHGGN&lid=LSTMOBHCN9UQEHVHGGNGCGXTX&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:59:50,869 INFO: [FAST] Visiting http://www.flipkart.com/vivo-y400-pro-5g-nebula-purple-256-gb/p/itme20aaec2a68e9?pid=MOBHCN9UZYMPZ3WZ&lid=LSTMOBHCN9UZYMPZ3WZGBBAGA&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:59:53,168 INFO: [FAST] Visiting http://www.flipkart.com/samsung-galaxy-f55-5g-apricot-crush-256-gb/p/itmc694e72550906?pid=MOBHY9N7WXERJJAS&lid=LSTMOBHY9N7WXERJJASXB9SYF&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 12:59:53,209 INFO: [FAST] Visiting https://www.flipkart.com/samsung-galaxy-s23-ultra-5g-cream-1-tb/p/itm95d46582a9d4b (try 1)
+2025-08-21 12:59:53,621 INFO: [FAST] Visiting http://www.flipkart.com/oppo-reno14-pro-5g-pearl-white-512-gb/p/itm17be6c392ab4c?pid=MOBHDDQ9W2RK5HZ4&lid=LSTMOBHDDQ9W2RK5HZ4DNT6NW&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:00:01,814 INFO: [FAST] Visiting http://www.flipkart.com/samsung-galaxy-f16-5g-glam-green-128-gb/p/itmcdb73c7370f76?pid=MOBH9ASGDGWZV69Z&lid=LSTMOBH9ASGDGWZV69ZTSJAUH&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:00:03,512 INFO: [FAST] Visiting http://www.flipkart.com/vivo-y400-pro-5g-freestyle-white-256-gb/p/itme20aaec2a68e9?pid=MOBHCN9UPFTFCPQH&lid=LSTMOBHCN9UPFTFCPQHJEWM3G&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:00:08,246 INFO: [FAST] Visiting https://www.flipkart.com/samsung-galaxy-s23-5g-cream-256-gb/p/itm745d4b532623e?pid=MOBGMFFXURCVYANE&cmpid=product.share.pp&_refId=PP.734e96e9-e6b5-4d56-b8a2-722c3bbd2033.MOBGMFFXURCVYANE&lid=LSTMOBGMFFXURCVYANE4SRNTK (try 1)
+2025-08-21 13:00:08,923 INFO: [FAST] Visiting http://www.flipkart.com/duepio-back-cover-ai-pulse-pluse/p/itm96018b7035233?pid=ACCHEEBTCWP98ZUZ&lid=LSTACCHEEBTCWP98ZUZVQLFQ2&marketplace=FLIPKART&cmpid=content_cases-covers_8965229628_gmc (try 1)
+2025-08-21 13:00:09,814 INFO: [FAST] Visiting http://www.flipkart.com/vivo-y400-pro-5g-nebula-purple-256-gb/p/itme20aaec2a68e9?pid=MOBHCN9UZYMPZ3WZ&lid=LSTMOBHCN9UZYMPZ3WZGBBAGA&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:00:16,019 INFO: [FAST] Visiting http://www.flipkart.com/samsung-galaxy-z-flip7-5g-black-512-gb/p/itmc200512d5867d?pid=MOBHD92UASQBCTXS&lid=LSTMOBHD92UASQBCTXS68KZYK&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:00:16,049 INFO: [FAST] Visiting https://www.flipkart.com/product/p/itme?pid=MOBGNPGZFWUKKJGR (try 1)
+2025-08-21 13:00:16,353 INFO: [FAST] Visiting https://www.flipkart.com/samsung-galaxy-s23-5g-cream-128-gb/p/itmc77ff94cdf044?pid=MOBGMFFX5XYE8MZN&cmpid=product.share.pp&_refId=PP.11552f22-026a-4a86-b3c1-effe099d8b28.MOBGMFFX5XYE8MZN (try 1)
+2025-08-21 13:00:22,414 INFO: [FAST] Visiting https://www.flipkart.com/redmi-note-13-pro-5g-fusion-black-512-gb/p/itm0c0113573ef61 (try 1)
+2025-08-21 13:00:22,515 INFO: [FAST] Visiting http://www.flipkart.com/samsung-galaxy-f16-5g-vibing-blue-128-gb/p/itm21ffc210450ff?pid=MOBH9ASGPYCDE8VA&lid=LSTMOBH9ASGPYCDE8VAEXUXDN&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:00:25,367 INFO: [FAST] Visiting http://www.flipkart.com/oppo-reno14-pro-5g-titanium-grey-256-gb/p/itm17be6c392ab4c?pid=MOBHDDQ9NPVP6KGH&lid=LSTMOBHDDQ9NPVP6KGH8UHZ7N&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:00:26,159 INFO: [FAST] Visiting https://www.flipkart.com/samsung-galaxy-s23-ultra-5g-phantom-black-512-gb/p/itm9c84080bfa6f0 (try 1)
+2025-08-21 13:00:26,890 INFO: [FAST] Visiting http://www.flipkart.com/samsung-galaxy-f16-5g-vibing-blue-128-gb/p/itmc59882b14985a?pid=MOBH9ASG42S7QZ6P&lid=LSTMOBH9ASG42S7QZ6PM3IJJ8&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:00:29,939 INFO: [FAST] Visiting https://www.flipkart.com/samsung-galaxy-a15-5g-blue-black-256-gb/p/itmb5e76be018c8d?pid=MOBGWD85UZC8C3V8&lid=LSTMOBGWD85UZC8C3V8H90TO7&marketplace=FLIPKART (try 1)
+2025-08-21 13:00:36,040 INFO: [FAST] Visiting http://www.flipkart.com/samsung-galaxy-f16-5g-bling-black-128-gb/p/itm98473f83de0f1?pid=MOBH9ASGZWYBDPUD&lid=LSTMOBH9ASGZWYBDPUDPEFY5L&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:00:38,407 INFO: [FAST] Visiting http://www.flipkart.com/samsung-galaxy-z-flip7-5g-dark-blue-512-gb/p/itm3ff17fec0e92c?pid=MOBHD92UNFUFC75S&lid=LSTMOBHD92UNFUFC75SAN8OXK&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:00:39,196 INFO: [FAST] Visiting http://www.flipkart.com/samsung-galaxy-f16-5g-glam-green-128-gb/p/itmcdb73c7370f76?pid=MOBH9ASGDGWZV69Z&lid=LSTMOBH9ASGDGWZV69ZTSJAUH&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:00:40,011 INFO: [FAST] Visiting https://www.flipkart.com/samsung-galaxy-s23-ultra-5g-green-1-tb/p/itm96a0c71a2f65e?pid=MOBGMFFX7SAEQFDH&cmpid=product.share.pp&_refId=PP.6a7d8054-1c8c-4c04-b128-4523c576cf4e.MOBGMFFX7SAEQFDH&lid=LSTMOBGMFFX7SAEQFDHGDTOOQ (try 1)
+2025-08-21 13:00:44,932 INFO: [FAST] Visiting https://www.flipkart.com/product/p/itme?pid=MOBGH2UVWWDA4MS6 (try 1)
+2025-08-21 13:00:45,127 INFO: [FAST] Visiting http://www.flipkart.com/samsung-galaxy-f16-5g-vibing-blue-128-gb/p/itma31262afa7505?pid=MOBH9ASGCZNFQGDG&lid=LSTMOBH9ASGCZNFQGDGYXWIQD&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:00:45,600 INFO: [FAST] Visiting https://www.flipkart.com/samsung-gay-a15-5g-blue-black-256-gb/p/itm9995bd13651e3 (try 1)
+2025-08-21 13:00:47,255 INFO: [FAST] Visiting https://www.flipkart.com/samsung-galaxy-a15-5g-blue-black-128-gb/p/itmef383f04d3bf0 (try 1)
+2025-08-21 13:00:51,451 INFO: [FAST] Visiting https://www.flipkart.com/redmi-note-12-pro-5g-stardust-purple-256-gb/p/itme6dedc5344f2a?pid=MOBGRV6HCF8BQEYQ&cmpid=product.share.pp&_refId=PP.572c0867-77ea-492c-99b2-fb169b0844bb.MOBGRV6HCF8BQEYQ&lid=LSTMOBGRV6HCF8BQEYQAQI4XA (try 1)
+2025-08-21 13:00:52,283 INFO: [FAST] Visiting https://www.flipkart.com/samsung-galaxy-a15-5g-light-blue-256-gb/p/itm8de3d00d2b7c9?pid=MOBGWD85RHZSPFVZ&cmpid=product.share.pp&_refId=PP.ef78494e-bea8-4115-ba23-e66caa1837b6.MOBGWD85RHZSPFVZ&lid=LSTMOBGWD85RHZSPFVZEBUX9D (try 1)
+2025-08-21 13:00:52,908 INFO: [FAST] Visiting http://www.flipkart.com/samsung-galaxy-f16-5g-bling-black-128-gb/p/itm36dc1b01d7f0c?pid=MOBH9ASGXEYAEJDE&lid=LSTMOBH9ASGXEYAEJDEO5XLUM&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:00:54,316 INFO: [FAST] Visiting https://www.flipkart.com/samsung-galaxy-a15-5g-blue-128-gb/p/itm66a3a07cba1e7?pid=MOBGWD8558BQ3QQB&lid=LSTMOBGWD8558BQ3QQBFPDIPK&marketplace=FLIPKART&fm=productRecommendation/aspectSimilar&iid=R:ap;p:MOBGYT2HGFKNMSZQ;l:LSTMOBGYT2HGFKNMSZQEXUL64;pt:pp;uid:89e751fd-a580-11ef-84b6-0981a82977d3;.MOBGWD8558BQ3QQB&ppt=None&ppn=None&ssid=e42ebjkhcw0000001731915696294&otracker=pp_reco_Similar%2Bfrom%2BSAMSUNG_3_38.productCard.PMU_V2_SAMSUNG%2BGalaxy%2BA15%2B5G%2B%2528Blue%252C%2B128%2BGB%2529_MOBGWD8558BQ3QQB_productRecommendation/aspectSimilar_2&otracker1=pp_reco_WHITELISTED_productRecommendation/aspectSimilar_Similar%2Bfrom%2BSAMSUNG_GRID_productCard_cc_3_NA_view-all&cid=MOBGWD8558BQ3QQB (try 1)
+2025-08-21 13:00:59,457 INFO: [FAST] Visiting https://www.flipkart.com/redmi-note-12-pro-5g-onyx-black-128-gb/p/itme8f9e57a69716?pid=MOBGZF9PYZHPTZGK&lid=LSTMOBGZF9PYZHPTZGKBPKSCJ&marketplace=FLIPKART&hl_lid&q=Redmi+Note+15+Pro+Max+5g&store=tyy/4io (try 1)
+2025-08-21 13:01:03,410 INFO: [FAST] Visiting http://www.flipkart.com/samsung-galaxy-f16-5g-glam-green-128-gb/p/itm74165546d7c6c?pid=MOBH9ASGGCVWXXCW&lid=LSTMOBH9ASGGCVWXXCWXWAURI&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:01:04,690 INFO: [FAST] Visiting https://www.flipkart.com/redmi-note-12-pro-5g-obsidian-black-256-gb/p/itm045272629c8bf?pid=MOBGH2UVTFKREUVZ&lid=LSTMOBGH2UVTFKREUVZIZUGGH&marketplace=FLIPKART (try 1)
+2025-08-21 13:01:08,010 INFO: [FAST] Visiting https://www.flipkart.com/redmi-note-12-pro-5g-stardust-purple-256-gb/p/itmb3d6f68dfb5d2?pid=MOBGH2UVFMVF8PHG&lid=LSTMOBGH2UVFMVF8PHGSDDKSJ&marketplace=FLIPKART&store=tyy/4io&srno=b_1_22&otracker=browse&fm=organic&iid=01b2f4f8-5016-4451-b8e1-b475d80afa51.MOBGH2UVFMVF8PHG.SEARCH&ppt=None&ppn=None&ssid=6b89hg7w400000001693150336563 (try 1)
+2025-08-21 13:01:08,159 INFO: [FAST] Visiting https://www.flipkart.com/redmi-note-12-pro-5g-onyx-black-256-gb/p/itm7aa76c2f3f28e?pid=MOBGRV6HTGFAYHDE&lid=LSTMOBGRV6HTGFAYHDEFFU4N9&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:01:09,434 INFO: [FAST] Visiting https://www.flipkart.com/samsung-galaxy-a15-5g-blue-black-256-gb/p/itmb5e76be018c8d?pid=MOBGWD85UZC8C3V8&lid=LSTMOBGWD85UZC8C3V8E8W9FD&marketplace=FLIPKART (try 1)
+2025-08-21 13:01:09,725 INFO: [FAST] Visiting http://www.flipkart.com/samsung-galaxy-a15-5g-blue-128-gb/p/itm06604fe9b8276?pid=MOBGWD85AZCYWPYW&lid=LSTMOBGWD85AZCYWPYW7FUWNK&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:01:13,860 INFO: [FAST] Visiting https://www.flipkart.com/redmi-note-12-pro-5g-onyx-black-256-gb/p/itm8a52c0347c7f2 (try 1)
+2025-08-21 13:01:14,417 INFO: [FAST] Visiting http://www.flipkart.com/redmi-13c-5g-starlight-black-128-gb/p/itm996fbc603ec3c?pid=MOBGW6S7PW5NSC35&lid=LSTMOBGW6S7PW5NSC35TRPQPY&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:01:19,351 INFO: [FAST] Visiting https://www.flipkart.com/product/p/itme?pid=MOBGH2UVUGR9N5FW (try 1)
+2025-08-21 13:01:19,635 INFO: [FAST] Visiting https://www.flipkart.com/redmi-note-12-pro-5g-obsidian-black-256-gb/p/itm91af760b68910?pid=MOBGH2UVUGR9N5FW&lid=LSTMOBGH2UVUGR9N5FWQNWXEX&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:01:19,710 INFO: [FAST] Visiting https://www.flipkart.com/redmi-note-12-pro-5g-onyx-black-256-gb/p/itm80b4635a4af30?pid=MOBGZF9PJ597B8ZK&lid=LSTMOBGZF9PJ597B8ZKFCKZ40&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:01:22,382 INFO: [FAST] Visiting http://www.flipkart.com/oppo-k13x-5g-6000mah-45w-supervooc-charger-ai-midnight-violet-128-gb/p/itm62b2e62fbb43e?pid=MOBHDY9PPU2NRCZH&lid=LSTMOBHDY9PPU2NRCZHVD1YM4&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:01:24,485 INFO: [FAST] Visiting https://www.flipkart.com/redmi-note-12-pro-5g-onyx-black-128-gb/p/itmf043b12dd895e?pid=MOBGH2UVXTFJMM7G&cmpid=product.share.pp&_refId=PP.4838f31c-75a8-43ec-81a2-1b089e3a92b1.MOBGH2UVXTFJMM7G&lid=LSTMOBGH2UVXTFJMM7GS5N7TC (try 1)
+2025-08-21 13:01:26,081 INFO: [FAST] Visiting https://www.flipkart.com/redmi-13c-5g-startrail-silver-128-gb/p/itm996fbc603ec3c?pid=MOBGW6S7H6ZGKDWJ&lid=LSTMOBGW6S7H6ZGKDWJIOQTSO&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:01:26,336 INFO: [FAST] Visiting https://www.flipkart.com/redmi-note-12-pro-5g-iceberg-blue-256-gb/p/itmdeba28a40f374?pid=MOBGH2UVAVEDXJPK&lid=LSTMOBGH2UVAVEDXJPKTEJNO2&marketplace=FLIPKART&hl_lid&store=tyy/4io (try 1)
+2025-08-21 13:01:26,969 INFO: [FAST] Visiting https://www.flipkart.com/redmi-note-12-pro-5g-arctic-white-256-gb/p/itm715c45001499f (try 1)
+2025-08-21 13:01:28,965 INFO: [FAST] Visiting http://www.flipkart.com/realme-c75-5g-purple-blossom-128-gb/p/itm01c49ca24e054?pid=MOBHB39GHN89TGJX&lid=LSTMOBHB39GHN89TGJXBD3QDD&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:01:30,053 INFO: [FAST] Visiting http://www.flipkart.com/vivo-t4-ultra-5g-phoenix-gold-256-gb/p/itm9cfd8118c9ce0?pid=MOBHCJMRHSP2HPZZ&lid=LSTMOBHCJMRHSP2HPZZ3KHQDL&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:01:31,412 INFO: [FAST] Visiting http://www.flipkart.com/oppo-k13x-5g-6000mah-45w-supervooc-charger-ai-sunset-peach-128-gb/p/itm62b2e62fbb43e?pid=MOBHDY9PVAHGDHWG&lid=LSTMOBHDY9PVAHGDHWGBSHGNL&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:01:32,434 INFO: [FAST] Visiting https://www.flipkart.com/pelonis-as823e4j-s-23-l-convection-microwave-oven/p/itme7mye5tnyk3n9?pid=MOBHCJMRHSP2HPZZ (try 1)
+2025-08-21 13:01:32,933 INFO: [FAST] Visiting http://www.flipkart.com/redmi-13c-5g-starlight-black-128-gb/p/itm996fbc603ec3c?pid=MOBGW6S7PW5NSC35&lid=LSTMOBGW6S7PW5NSC35BTN2AI&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:01:36,181 INFO: [FAST] Visiting https://www.flipkart.com/redmi-note-13-pro-5g-fusion-purple-256-gb/p/itma47dd2ab1b360?pid=MOBGZF9PATN3MG9X&lid=LSTMOBGZF9PATN3MG9XCKRPUV&marketplace=FLIPKART&store=tyy/4io&srno=b_1_11&otracker=browse&fm=organic&iid=606a6f55-19c8-4013-a6ae-af6f12bd51ff.MOBGZF9PATN3MG9X.SEARCH&ppt=None&ppn=None&ssid=mr7wm5fvhc0000001734940240224 (try 1)
+2025-08-21 13:01:40,261 INFO: [FAST] Visiting http://www.flipkart.com/realme-narzo-80-lite-5g-crystal-purple-128-gb/p/itm47ab7fdec3924?pid=MOBHDEYWZGFS7FBT&lid=LSTMOBHDEYWZGFS7FBT5KESY9&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:01:41,540 INFO: [FAST] Visiting http://www.flipkart.com/oppo-k13x-5g-6000mah-45w-supervooc-charger-ai-midnight-violet-128-gb/p/itm62b2e62fbb43e?pid=MOBHDY9PMWDRYDAS&lid=LSTMOBHDY9PMWDRYDAS8RILF5&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:01:42,769 INFO: [FAST] Visiting https://www.flipkart.com/redmi-note-12-pro-5g-obsidian-black-256-gb/p/itm045272629c8bf (try 1)
+2025-08-21 13:01:44,069 INFO: [FAST] Visiting http://www.flipkart.com/samsung-galaxy-a06-5g-light-green-128-mb/p/itm20ea64b1504e4?pid=MOBH9YKUTGWPGPHD&lid=LSTMOBH9YKUTGWPGPHDMKV1S8&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:01:50,504 INFO: [FAST] Visiting https://www.flipkart.com/redmi-note-12-pro-5g-arctic-white-256-gb/p/itme25a071508595?pid=MOBGH2UVFZJ8HFRN&cmpid=product.share.pp&_refId=PP.e1aa0fac-200d-4b0e-82f4-4fe941693ba5.MOBGH2UVFZJ8HFRN&lid=LSTMOBGH2UVFZJ8HFRNXP0KHJ (try 1)
+2025-08-21 13:02:10,045 INFO: [FAST] Visiting http://www.flipkart.com/oneplus-nord-ce4-celadon-marble-256-gb/p/itm5a09089114afb?pid=MOBGZZGY8FRH5Y7R&lid=LSTMOBGZZGY8FRH5Y7RDCAOYD&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:02:15,781 INFO: [FAST] Visiting http://www.flipkart.com/samsung-galaxy-a06-5g-light-gray-128-gb/p/itm96b00d665631f?pid=MOBH9YKVTKYHQGHG&lid=LSTMOBH9YKVTKYHQGHGSOL55U&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:02:29,645 INFO: [FAST] Visiting http://www.flipkart.com/oppo-a5-5g-mist-white-128-gb/p/itmb152c18969f6d?pid=MOBHDYAYTJ9B6DFW&lid=LSTMOBHDYAYTJ9B6DFWPOQQRO&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:02:32,161 INFO: [FAST] Visiting http://www.flipkart.com/oppo-a5-5g-aurora-green-128-gb/p/itmb152c18969f6d?pid=MOBHDYAY6VUDZHGA&lid=LSTMOBHDYAY6VUDZHGAT0SUWZ&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:02:32,349 INFO: [FAST] Visiting http://www.flipkart.com/realme-c75-5g-midnight-lily-128-gb/p/itm01c49ca24e054?pid=MOBHB39GC2RVSFUH&lid=LSTMOBHB39GC2RVSFUHHDJU2B&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:02:33,276 INFO: [FAST] Visiting http://www.flipkart.com/oppo-a59-5g-starry-black-128-gb/p/itmb953e8a228a44?pid=MOBGW4JK24GTPZHZ&lid=LSTMOBGW4JK24GTPZHZOOZOSQ&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:02:45,108 INFO: [FAST] Visiting https://www.flipkart.com/infinix-hot-30-5g-knight-black-128-gb/p/itm6d838a176d8c4?pid=MOBGR4GQJGGZF8KS&cmpid=product.share.pp&_refId=PP.da442e72-81c6-47db-a7f4-fd0297b737cc.MOBGR4GQJGGZF8KS (try 1)
+2025-08-21 13:02:45,287 INFO: [FAST] Visiting http://www.flipkart.com/samsung-galaxy-a06-5g-black-128-gb/p/itm2bf1cd87d2bf7?pid=MOBH9GQKCNWVNM2M&lid=LSTMOBH9GQKCNWVNM2M9OP9AY&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:02:45,497 INFO: [FAST] Visiting http://www.flipkart.com/oppo-a59-5g-silk-gold-128-gb/p/itmb953e8a228a44?pid=MOBGW4JKTTPXVNMA&lid=LSTMOBGW4JKTTPXVNMABDP9WD&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:02:48,811 INFO: [FAST] Visiting http://www.flipkart.com/samsung-galaxy-a06-5g-light-green-128-gb/p/itm7ec0a3866eba9?pid=MOBH9GQKZF6ZFVGB&lid=LSTMOBH9GQKZF6ZFVGBHHNL7N&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:02:53,706 INFO: [FAST] Visiting http://www.flipkart.com/redmi-note-13-pro-5g-fusion-white-256-gb/p/itmdf7fe7bfc84f7?pid=MOBGWFHFHXHFTQCD&lid=LSTMOBGWFHFHXHFTQCDVLKB8V&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:02:53,792 INFO: [FAST] Visiting https://www.flipkart.com/oneplus-nord-3-5g-tempest-gray-128-gb/p/itm5fc87afce35dc?pid=MOBGRK2VXCKBADB5&lid=LSTMOBGRK2VXCKBADB57UTNIB&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:02:57,194 INFO: [FAST] Visiting https://www.flipkart.com/realme-c51-carbon-black-64-gb/p/itm0e93bcb87927f?pid=MOBGSQGGZ7HQMEZD&cmpid=product.share.pp&_refId=PP.dafe6448-4f79-44e0-8878-7207607332ff.MOBGSQGGZ7HQMEZD&lid=LSTMOBGSQGGZ7HQMEZDLJZNWD (try 1)
+2025-08-21 13:02:57,262 INFO: [FAST] Visiting https://www.flipkart.com/realme-c51-mint-green-128-gb/p/itm0e93bcb87927f?pid=MOBGU8PYH4CHK2YS&cmpid=product.share.pp&_refId=PP.7bceff84-27d1-4990-971b-0c66994d2ba4.MOBGU8PYH4CHK2YS&lid=LSTMOBGU8PYH4CHK2YSZCGIEN (try 1)
+2025-08-21 13:03:02,110 INFO: [FAST] Visiting https://www.flipkart.com/infinix-hot-30-5g-miami-orange-128-gb/p/itm6d838a176d8c4?pid=MOBGR4GQYSBPZXVF&lid=LSTMOBGR4GQYSBPZXVFHGVWBG&marketplace=FLIPKART&store=tyy/4io&srno=b_1_20&otracker=browse&fm=organic&iid=1ecce624-1278-42d1-adc4-69a56e016dd2.MOBGR4GQYSBPZXVF.SEARCH&ppt=None&ppn=None&ssid=h9719eiqmo0000001692076000284 (try 1)
+2025-08-21 13:03:02,377 INFO: [FAST] Visiting https://www.flipkart.com/oneplus-nord-3-5g-tempest-gray-128-gb/p/itm5fc87afce35dc?pid=MOBGRK2VXCKBADB5&cmpid=product.share.pp&_refId=PP.25de688c-e63c-4442-98cc-75eefd810d76.MOBGRK2VXCKBADB5&lid=LSTMOBGRK2VXCKBADB5VS4ZEK (try 1)
+2025-08-21 13:03:06,298 INFO: [FAST] Visiting https://www.flipkart.com/oneplus-nord-3-5g-tempest-gray-256-gb/p/itm5fc87afce35dc?pid=MOBGRK35QGGTMTZ3&cmpid=product.share.pp&_refId=PP.7b9892f8-da8a-4fbc-a33a-6dc876e5b379.MOBGRK35QGGTMTZ3 (try 1)
+2025-08-21 13:03:10,890 INFO: [FAST] Visiting https://www.flipkart.com/infinix-hot-30-5g-aurora-blue-128-gb/p/itm6d838a176d8c4?pid=MOBGR4GQRX8WPGMG&cmpid=product.share.pp&_refId=PP.22f4a918-e275-4b86-80ef-d92418a92607.MOBGR4GQRX8WPGMG (try 1)
+2025-08-21 13:03:12,856 INFO: [FAST] Visiting https://www.flipkart.com/oneplus-nord-3-5g-misty-green-256-gb/p/itm5fc87afce35dc?pid=MOBGRK3284RMGYSX&lid=LSTMOBGRK3284RMGYSXVGXLEX&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:03:15,780 INFO: [FAST] Visiting https://www.flipkart.com/vivo-x90-breeze-blue-256-gb/p/itm59734ba5199c4?pid=MOBGZVNNPBYTWTHE&lid=LSTMOBGZVNNPBYTWTHEVLT4F5&marketplace=FLIPKART&store=tyy/4io&srno=b_1_1&otracker=clp_bannerads_1_19.bannerAdCard.BANNERADS_A_mobile-phones-store_84UMFMTQ1GNX&fm=organic&iid=483c3c16-efc0-43b1-97ec-d25355026e34.MOBGZVNNPBYTWTHE.SEARCH&ppt=None&ppn=None&ssid=56n0h98z0w0000001685019553671 (try 1)
+2025-08-21 13:03:19,808 INFO: [FAST] Visiting http://www.flipkart.com/itel-p55-5g-galaxy-blue-128-gb/p/itm6d53dcaeb2d08?pid=MOBGVQ9B2MZHGT68&lid=LSTMOBGVQ9B2MZHGT68GQLDMB&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:03:20,066 INFO: [FAST] Visiting https://www.flipkart.com/oneplus-nord-ce4-lite-5g-ultra-orange-256-gb/p/itm8fd5fdf300955?pid=MOBH25ZHN4MRWKFT&lid=LSTMOBH25ZHN4MRWKFTJ2YMWK&marketplace=FLIPKART&store=tyy/4io&srno=b_1_5&otracker=browse&fm=organic&iid=d280cd0f-07dc-455e-95f2-cbff7a38d4a7.MOBH25ZHN4MRWKFT.SEARCH&ppt=None&ppn=None&ssid=n92qgy2g1s0000001733802258744 (try 1)
+2025-08-21 13:03:22,183 INFO: [FAST] Visiting https://www.flipkart.com/vivo-x90-breeze-blue-256-gb/p/itm59734ba5199c4?pid=MOBGZVNNRM7QYFZV&cmpid=product.share.pp&_refId=PP.3ad35dbf-9a7c-42e3-a62e-a3956bb64f08.MOBGZVNNRM7QYFZV&lid=LSTMOBGZVNNRM7QYFZVFBP5DE (try 1)
+2025-08-21 13:03:29,368 INFO: [FAST] Visiting https://www.flipkart.com/vivo-x90-asteroid-black-256-gb/p/itm59734ba5199c4?pid=MOBGZVNN3VGZF5HG&lid=LSTMOBGZVNN3VGZF5HGKO1XVG&marketplace=FLIPKART&store=tyy/4io&srno=b_1_4&otracker=clp_bannerads_1_31.bannerAdCard.BANNERADS_A_mobile-phones-store_84UMFMTQ1GNX&fm=organic&iid=482a0857-5cb9-4839-a3d0-27fb13dce8de.MOBGZVNN3VGZF5HG.SEARCH&ppt=None&ppn=None&ssid=yqv6h8qrls0000001690463664827 (try 1)
+2025-08-21 13:03:30,475 INFO: [FAST] Visiting http://www.flipkart.com/infinix-hot-30-5g-knight-black-128-gb/p/itm6d838a176d8c4?pid=MOBGR4GQY2ZD6GY6&lid=LSTMOBGR4GQY2ZD6GY6EH9L0Z&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:03:33,640 INFO: [FAST] Visiting https://www.flipkart.com/oneplus-nord-3-5g-tempest-gray-128-gb/p/itm5fc87afce35dc?pid=MOBGRK2VXCKBADB5&lid=LSTMOBGRK2VXCKBADB5XQILMJ&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:03:36,668 INFO: [FAST] Visiting https://www.flipkart.com/infinix-hot-30-5g-knight-black-128-gb/p/itm6d838a176d8c4?pid=MOBGR4GQY2ZD6GY6&cmpid=product.share.pp&_refId=PP.f8385b97-497c-43b3-868b-e38438d1990c.MOBGR4GQY2ZD6GY6 (try 1)
+2025-08-21 13:03:43,241 INFO: [FAST] Visiting https://www.flipkart.com/infinix-hot-30-5g-miami-orange-128-gb/p/itm6d838a176d8c4?pid=MOBGR4GQYSBPZXVF&marketplace=FLIPKART (try 1)
+2025-08-21 13:03:47,103 INFO: [FAST] Visiting http://www.flipkart.com/vivo-y28-5g-crystal-purple-128-gb/p/itmf3cf02fda7962?pid=MOBGWEGHFRCVSKZC&lid=LSTMOBGWEGHFRCVSKZCWBZALM&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:03:51,552 INFO: [FAST] Visiting https://www.flipkart.com/infinix-note-30-5g-magic-black-256-gb/p/itm12c179f0a6281?pid=MOBGQ9HPEZKFHZFQ&param=19910 (try 1)
+2025-08-21 13:03:52,232 INFO: [FAST] Visiting https://www.flipkart.com/motorola-g45-5g/p/itm1decbdd265f94?pid=MOBH3YKQT2HEAPAM&ocmpid=BrandAd_Motorola_g45_Google_DemandGen_India-Launch-Video-Paid?force_app%3D1&gclid=CjwKCAjwlbu2BhA3EiwA3yXyu9MWQie9V-1fg13dvEPeP2w979C9BHoVsNLtGLjtk76w_sMmYA2_SRoCBz0QAvD_BwE (try 1)
+2025-08-21 13:03:56,222 INFO: [FAST] Visiting http://www.flipkart.com/vivo-y19-5g-titanium-silver-128-gb/p/itmb678fd80e7095?pid=MOBHAX75TBB6AEG7&lid=LSTMOBHAX75TBB6AEG7PYDIXF&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:04:02,418 ERROR: Fast offer scrape error Message: timeout: Timed out receiving message from renderer: 23.646
+  (Session info: chrome=139.0.7258.67)
+Stacktrace:
+	GetHandleVerifier [0x0xb5ffc3+65331]
+	GetHandleVerifier [0x0xb60004+65396]
+	(No symbol) [0x0x953f63]
+	(No symbol) [0x0x944c2b]
+	(No symbol) [0x0x944961]
+	(No symbol) [0x0x942904]
+	(No symbol) [0x0x9433cd]
+	(No symbol) [0x0x94fbf9]
+	(No symbol) [0x0x9610b5]
+	(No symbol) [0x0x966aa6]
+	(No symbol) [0x0x943a0d]
+	(No symbol) [0x0x960ea5]
+	(No symbol) [0x0x9e2f03]
+	(No symbol) [0x0x9c12d6]
+	(No symbol) [0x0x990910]
+	(No symbol) [0x0x991784]
+	GetHandleVerifier [0x0xda38b3+2439203]
+	GetHandleVerifier [0x0xd9eae2+2419282]
+	GetHandleVerifier [0x0xb8712a+225434]
+	GetHandleVerifier [0x0xb76e08+159096]
+	GetHandleVerifier [0x0xb7dd5d+187597]
+	GetHandleVerifier [0x0xb67ad8+96840]
+	GetHandleVerifier [0x0xb67c62+97234]
+	GetHandleVerifier [0x0xb5277a+9962]
+	BaseThreadInitThunk [0x0x764d5d49+25]
+	RtlInitializeExceptionChain [0x0x778dd2fb+107]
+	RtlGetAppContainerNamedObjectPath [0x0x778dd281+561]
+
+2025-08-21 13:04:04,560 INFO: [FAST] Visiting https://www.flipkart.com/vivo-y200-5g-desert-gold-128-gb/p/itmc79ade2c32297?pid=MOBGUGG8XGJJPVBC&marketplace=FLIPKART&cmpid=product.share.pp&_refId=PP.c72ae334-0867-41dc-8ff5-d63cfb875f08.MOBGUGG8XGJJPVBC (try 1)
+2025-08-21 13:04:09,031 INFO: [FAST] Visiting https://www.flipkart.com/vivo-x90-breeze-blue-256-gb/p/itm59734ba5199c4?pid=MOBGZVNNPBYTWTHE&lid=LSTMOBGZVNNPBYTWTHEI5C5XC&marketplace=FLIPKART&q=Vivo+x90&store=tyy/4io&srno=s_1_1&otracker=search&otracker1=search&fm=Search&iid=17e9a32d-e3e6-48ff-bc9e-32a8ba849b7f.MOBGZVNNPBYTWTHE.SEARCH&ppt=sp&ppn=sp&ssid=q8trxdi46o0000001717851230244&qH=6f2dc29950ed3097 (try 1)
+2025-08-21 13:04:14,137 INFO: [FAST] Visiting https://www.flipkart.com/realme-p1-5g-peacock-green-128-gb/p/itmae4447062b5b5?pid=MOBGZSU4HH7YZW6D&cmpid=product.share.pp&_refId=PP.24342582-4d73-4afb-8636-0c90bb684829.MOBGZSU4HH7YZW6D&lid=LSTMOBGZSU4HH7YZW6D3I1RBM (try 1)
+2025-08-21 13:04:14,329 INFO: [FAST] Visiting https://www.flipkart.com/motorola-g45-5g-viva-magenta-128-gb/p/itma7339032613f8 (try 1)
+2025-08-21 13:04:14,496 INFO: [FAST] Visiting http://www.flipkart.com/motorola-g45-5g-viva-magenta-128-gb/p/itmab7651d40eb72?pid=MOBH3YKQMPVFBUB5&lid=LSTMOBH3YKQMPVFBUB5BQUMDM&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:04:20,106 INFO: [FAST] Visiting http://www.flipkart.com/vivo-y200e-5g-black-diamond-128-gb/p/itmc14e227de274a?pid=MOBGXWT9PZ5MYKQA&lid=LSTMOBGXWT9PZ5MYKQAOT02FJ&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:04:21,422 INFO: [FAST] Visiting https://www.flipkart.com/realme-11x-5g-midnight-black-128-gb/p/itm07be1a2ff1a1b?pid=MOBGS2W3KYRQF4GZ&lid=LSTMOBGS2W3KYRQF4GZO4BBGH&marketplace=FLIPKART&store=tyy/4io&srno=b_1_4&otracker=browse&fm=organic&iid=e4401bf3-4ac2-4fa0-b6b3-372fa18699b8.MOBGS2W3KYRQF4GZ.SEARCH&ppt=None&ppn=None&ssid=st20akz4b40000001696365797080 (try 1)
+2025-08-21 13:04:22,371 INFO: [FAST] Visiting https://www.flipkart.com/realme-narzo-70x-5g-ice-blue-128-gb/p/itm4ef66169ea11b?pid=MOBHYCWWHK5QSU3H&cmpid=product.share.pp&_refId=PP.facac241-29cd-4c15-ae75-abac77a7dbeb.MOBHYCWWHK5QSU3H&lid=LSTMOBHYCWWHK5QSU3HQ7KZL5 (try 1)
+2025-08-21 13:04:23,751 INFO: [FAST] Visiting https://www.flipkart.com/realme-11x-5g-purple-dawn-128-gb/p/itm07be1a2ff1a1b?pid=MOBGS2W3YT99HRJ4&lid=LSTMOBGS2W3YT99HRJ4LLBBXR&marketplace=FLIPKART&hl_lid&store=tyy/4io (try 1)
+2025-08-21 13:04:25,190 INFO: [FAST] Visiting http://www.flipkart.com/vivo-y19-5g-titanium-silver-64-gb/p/itmb678fd80e7095?pid=MOBHAX75ZYREHMJS&lid=LSTMOBHAX75ZYREHMJS9Y23GG&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:04:28,222 ERROR: Price/stock fast error Message: timeout: Timed out receiving message from renderer: 25.000
+  (Session info: chrome=139.0.7258.67)
+Stacktrace:
+	GetHandleVerifier [0x0xb5ffc3+65331]
+	GetHandleVerifier [0x0xb60004+65396]
+	(No symbol) [0x0x953f63]
+	(No symbol) [0x0x944c2b]
+	(No symbol) [0x0x944961]
+	(No symbol) [0x0x942904]
+	(No symbol) [0x0x9433cd]
+	(No symbol) [0x0x94fbf9]
+	(No symbol) [0x0x9610b5]
+	(No symbol) [0x0x966aa6]
+	(No symbol) [0x0x943a0d]
+	(No symbol) [0x0x960ea5]
+	(No symbol) [0x0x9e2ada]
+	(No symbol) [0x0x9c12d6]
+	(No symbol) [0x0x990910]
+	(No symbol) [0x0x991784]
+	GetHandleVerifier [0x0xda38b3+2439203]
+	GetHandleVerifier [0x0xd9eae2+2419282]
+	GetHandleVerifier [0x0xb8712a+225434]
+	GetHandleVerifier [0x0xb76e08+159096]
+	GetHandleVerifier [0x0xb7dd5d+187597]
+	GetHandleVerifier [0x0xb67ad8+96840]
+	GetHandleVerifier [0x0xb67c62+97234]
+	GetHandleVerifier [0x0xb5277a+9962]
+	BaseThreadInitThunk [0x0x764d5d49+25]
+	RtlInitializeExceptionChain [0x0x778dd2fb+107]
+	RtlGetAppContainerNamedObjectPath [0x0x778dd281+561]
+
+2025-08-21 13:04:29,510 INFO: [FAST] Visiting https://www.flipkart.com/motorola-g45-5g-brilliant-green-128-gb/p/itm156df63edff03?pid=MOBH3YKQQN3S9TQQ&lid=LSTMOBH3YKQQN3S9TQQFYUGYY&marketplace=FLIPKART&fm=neo/merchandising&iid=M_efdc9036-5723-48b1-9c95-7e7f8118f233_1_B1E12LE7SM_MC.MOBH3YKQQN3S9TQQ&ppt=None&ppn=None&ssid=x74odqcd6o0000001738729263749&otracker=clp_pmu_v2_4G%2BMobiles%2BUnder%2B%25E2%2582%25B95%252C000_4_1.productCard.PMU_V2_Motorola%2Bg45%2B5G%2B%2528Brilliant%2BGreen%252C%2B128%2BGB%2529_4g-mobile-phones-store_MOBH3YKQQN3S9TQQ_neo/merchandising_3&otracker1=clp_pmu_v2_PINNED_neo/merchandising_4G%2BMobiles%2BUnder%2B%25E2%2582%25B95%252C000_LIST_productCard_cc_4_NA_view-all&cid=MOBH3YKQQN3S9TQQ (try 1)
+2025-08-21 13:04:32,599 INFO: [FAST] Visiting http://www.flipkart.com/realme-narzo-70x-5g-ice-blue-128-gb/p/itm4f71d9402833b?pid=MOBHFYR3HDCKWSZY&lid=LSTMOBHFYR3HDCKWSZYZF5TLF&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:04:34,648 INFO: [FAST] Visiting http://www.flipkart.com/realme-narzo-60-5g-mars-orange-128-gb/p/itmb9662c161eea6?pid=MOBGRHSY2NXUH3XR&lid=LSTMOBGRHSY2NXUH3XRT8CNP1&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:04:35,746 INFO: [FAST] Visiting https://www.flipkart.com/realme-narzo-70x-5g-forest-green-128-gb/p/itm4f71d9402833b?pid=MOBHYCWYZDN5GNTH&lid=LSTMOBHYCWYZDN5GNTHEIJSTQ&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:04:38,282 INFO: [FAST] Visiting http://www.flipkart.com/motorola-g45-5g-brilliant-green-128-gb/p/itm4f3bbebe58a57?pid=MOBH3YKQQN3S9TQQ&lid=LSTMOBH3YKQQN3S9TQQBCJAIU&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:04:42,683 INFO: [FAST] Visiting https://www.flipkart.com/realme-narzo-70x-5g-ice-blue-128-gb/p/itm4ef66169ea11b?pid=MOBHYCWWHK5QSU3H&cmpid=product.share.pp&_refId=PP.facac241-29cd-4c15-ae75-abac77a7dbeb.MOBHYCWWHK5QSU3H&lid=LSTMOBHYCWWHK5QSU3HQ7KZL5 (try 1)
+2025-08-21 13:04:47,103 INFO: [FAST] Visiting https://www.flipkart.com/realme-11x-5g-midnight-black-128-gb/p/itm07be1a2ff1a1b?pid=MOBGS2WFP7X8263G&lid=LSTMOBGS2WFP7X8263GHWP3NG&marketplace=FLIPKART (try 1)
+2025-08-21 13:04:50,371 INFO: [FAST] Visiting http://www.flipkart.com/realme-narzo-70x-5g-ice-blue-128-gb/p/itm4f71d9402833b?pid=MOBHFYR3HDCKWSZY&lid=LSTMOBHFYR3HDCKWSZYZF5TLF&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:04:58,396 INFO: [FAST] Visiting https://www.flipkart.com/infinix-note-30-5g-interstellar-blue-256-gb/p/itm12c179f0a6281?pid=MOBGQ9HPTHRDF7ZX&cmpid=product.share.pp&_refId=PP.195f98a0-ad58-4edd-bf4c-a4cb9b18d283.MOBGQ9HPTHRDF7ZX&_appId=WA (try 1)
+2025-08-21 13:04:59,134 INFO: [FAST] Visiting https://www.flipkart.com/realme-n65-5g-amber-gold-128-gb/p/itmd927409b843e3 (try 1)
+2025-08-21 13:05:04,573 INFO: [FAST] Visiting http://www.flipkart.com/realme-narzo-n65-5g-amber-gold-128-gb/p/itm6378f5785d47b?pid=MOBHFFNQWMBHHAYW&lid=LSTMOBHFFNQWMBHHAYWQX2DRU&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:05:19,292 INFO: [FAST] Visiting https://www.flipkart.com/realme-narzo-n65-5g-deep-green-128-gb/p/itm6378f5785d47b?pid=MOBHFFNQ7YFHPNTZ&lid=LSTMOBHFFNQ7YFHPNTZWH1PDM&marketplace=FLIPKART (try 1)
+2025-08-21 13:05:19,605 INFO: [FAST] Visiting http://www.flipkart.com/realme-c63-5g-charger-box-starry-gold-128-gb/p/itm10b8f5cccfadd?pid=MOBH3DZQHRGWZHTY&lid=LSTMOBH3DZQHRGWZHTYNLLAEC&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:05:20,838 INFO: [FAST] Visiting https://www.flipkart.com/realme-narzo-n65-5g-amber-gold-128-gb/p/itm6378f5785d47b?pid=MOBHFFNQWMBHHAYW&lid=LSTMOBHFFNQWMBHHAYWGXI1D0&marketplace=FLIPKART (try 1)
+2025-08-21 13:05:27,032 INFO: [FAST] Visiting https://www.flipkart.com/realme-narzo-n65-5g-deep-green-128-gb/p/itm6378f5785d47b?pid=MOBHFFNQ7YFHPNTZ&lid=LSTMOBHFFNQ7YFHPNTZWH1PDM&marketplace=FLIPKART (try 1)
+2025-08-21 13:05:30,900 INFO: [FAST] Visiting http://www.flipkart.com/realme-narzo-n65-5g-deep-green-128-gb/p/itm6378f5785d47b?pid=MOBHFFNQ7YFHPNTZ&lid=LSTMOBHFFNQ7YFHPNTZ5FDOPM&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:05:34,465 INFO: [FAST] Visiting http://www.flipkart.com/realme-narzo-n65-5g-deep-green-128-gb/p/itm6378f5785d47b?pid=MOBHFFNQAMDHZZF7&lid=LSTMOBHFFNQAMDHZZF7BWGAJ5&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:05:35,909 INFO: [FAST] Visiting http://www.flipkart.com/vivo-y28-5g-crystal-purple-128-gb/p/itmf3cf02fda7962?pid=MOBGWEGHFRCVSKZC&lid=LSTMOBGWEGHFRCVSKZCWBZALM&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:05:36,519 INFO: [FAST] Visiting http://www.flipkart.com/realme-c63-5g-charger-box-forest-green-128-gb/p/itm10b8f5cccfadd?pid=MOBH3DZQ4JE2GVAR&lid=LSTMOBH3DZQ4JE2GVAR5U45PL&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:05:40,377 INFO: [FAST] Visiting http://www.flipkart.com/realme-narzo-n65-5g-deep-green-128-gb/p/itm6378f5785d47b?pid=MOBHFFNQAMDHZZF7&lid=LSTMOBHFFNQAMDHZZF7BWGAJ5&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:05:42,715 INFO: [FAST] Visiting https://www.flipkart.com/realme-narzo-70x-5g-forest-green-128-gb/p/itm4f71d9402833b?pid=MOBHFYR2HMFX4SG5&cmpid=product.share.pp&_refId=PP.0f4f90e7-cb2f-4b8b-8c5d-28666bfdb164.MOBHFYR2HMFX4SG5&lid=LSTMOBHFYR2HMFX4SG5OKMAJE (try 1)
+2025-08-21 13:05:44,930 INFO: [FAST] Visiting https://www.flipkart.com/realme-narzo-70x-5g-forest-green-128-gb/p/itm4f71d9402833b?pid=MOBHYCWYZDN5GNTH&lid=LSTMOBHYCWYZDN5GNTHEIJSTQ&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:05:46,554 INFO: [FAST] Visiting https://www.flipkart.com/realme-11x-5g-purple-dawn-128-gb/p/itm07be1a2ff1a1b?pid=MOBGS2WFBDQBD2B4&cmpid=product.share.pp&_refId=PP.2b6d5c21-7f86-4caa-b8ae-296daf65725d.MOBGS2WFBDQBD2B4&lid=LSTMOBGS2WFBDQBD2B41C9ZEH (try 1)
+2025-08-21 13:05:46,730 INFO: [FAST] Visiting http://www.flipkart.com/realme-p1-5g-phoenix-red-128-gb/p/itmae4447062b5b5?pid=MOBGYQ6BXSENZRV3&lid=LSTMOBGYQ6BXSENZRV3XKXGCB&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:05:49,840 INFO: [FAST] Visiting https://www.flipkart.com/realme-narzo-n65-5g-deep-green-128-gb/p/itm6378f5785d47b?pid=MOBHFFNQAMDHZZF7&cmpid=product.share.pp&_refId=PP.e73329b9-b84e-4d2f-889f-88f0bcf5bb15.MOBHFFNQAMDHZZF7&lid=LSTMOBHFFNQAMDHZZF7LOM8KC (try 1)
+2025-08-21 13:05:54,212 INFO: [FAST] Visiting http://www.flipkart.com/realme-p1-speed-5g-brushed-blue-256-gb/p/itm043baaa17426f?pid=MOBH4TV9TPVSGEWD&lid=LSTMOBH4TV9TPVSGEWDEEYPBH&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:05:56,179 INFO: [FAST] Visiting https://www.flipkart.com/realme-narzo-n65-5g-deep-green-128-gb/p/itm6378f5785d47b?pid=MOBHFFNQ7YFHPNTZ&lid=LSTMOBHFFNQ7YFHPNTZWH1PDM&marketplace=FLIPKART (try 1)
+2025-08-21 13:05:57,367 INFO: [FAST] Visiting https://www.flipkart.com/realme-narzo-70x-5g-forest-green-128-gb/p/itm4ef66169ea11b?pid=MOBHYCWYZDN5GNTH&lid=LSTMOBHYCWYZDN5GNTHHTYFIE&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:05:57,759 INFO: [FAST] Visiting https://www.flipkart.com/poco-x6-5g-mirror-black-256-gb/p/itmb410289a9f053?pid=MOBGWMGBZHPVFZ5R&lid=LSTMOBGWMGBZHPVFZ5RIA5GZ3&marketplace=FLIPKART (try 1)
+2025-08-21 13:06:02,854 INFO: [FAST] Visiting https://www.flipkart.com/poco-x6-5g-snowstorm-white-256-gb/p/itm705116870e629?pid=MOBGWMGBGPMDMYQZ&cmpid=product.share.pp&_refId=PP.109f6e80-6171-45c4-8149-e8c88176665f.MOBGWMGBGPMDMYQZ (try 1)
+2025-08-21 13:06:02,911 INFO: [FAST] Visiting http://www.flipkart.com/realme-c63-5g-charger-box-starry-gold-128-gb/p/itm10b8f5cccfadd?pid=MOBH3DZQHRGWZHTY&lid=LSTMOBH3DZQHRGWZHTYV8DX0D&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:06:03,417 INFO: [FAST] Visiting http://www.flipkart.com/realme-p1-5g-phoenix-red-128-gb/p/itmae4447062b5b5?pid=MOBGZSU4BBYYMSEV&lid=LSTMOBGZSU4BBYYMSEVEEHYG2&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:06:09,738 INFO: [FAST] Visiting https://www.flipkart.com/vivo-v30-5g-classic-black-256-gb/p/itmd7b7a1700c431?pid=MOBGYGCBRZXRFZDK&lid=LSTMOBGYGCBRZXRFZDKFU7GX5&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:06:15,004 INFO: [FAST] Visiting https://www.flipkart.com/realme-narzo-70x-5g-ice-blue-128-gb/p/itm4ef66169ea11b?pid=MOBHYCWQUSWGF6FT&lid=LSTMOBHYCWQUSWGF6FTHZJQQN&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:06:15,138 INFO: [FAST] Visiting https://www.flipkart.com/product/p/itme?pid=MOBGYGCBFZ25GARG (try 1)
+2025-08-21 13:06:17,696 INFO: [FAST] Visiting https://www.flipkart.com/realme-narzo-n65-5g-deep-green-128-gb/p/itm6378f5785d47b?pid=MOBH3KM2ZATZHPGS&marketplace=FLIPKART&cmpid=product.share.pp&_refId=PP.405c98e0-a826-4e70-8757-0858389a2586.MOBH3KM2ZATZHPGS&lid=LSTMOBH3KM2ZATZHPGS8MVRKL (try 1)
+2025-08-21 13:06:18,403 INFO: [FAST] Visiting http://www.flipkart.com/realme-narzo-n65-5g-amber-gold-128-gb/p/itm6378f5785d47b?pid=MOBHFFNQWMBHHAYW&lid=LSTMOBHFFNQWMBHHAYWX3RDSF&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:06:23,213 INFO: [FAST] Visiting https://www.flipkart.com/redmi-note-12-lunar-black-128-gb/p/itm6ba19bad63915 (try 1)
+2025-08-21 13:06:23,523 INFO: [FAST] Visiting http://www.flipkart.com/poco-x6-5g-snowstorm-white-512-gb/p/itm702c7cefff09f?pid=MOBGWMGBEXPKZSRG&lid=LSTMOBGWMGBEXPKZSRGOI3Z67&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:06:24,326 INFO: [FAST] Visiting https://www.flipkart.com/realme-narzo-70x-5g-forest-green-128-gb/p/itm4ef66169ea11b?pid=MOBHYCWRBMMQGUZG&cmpid=product.share.pp&_refId=PP.c239fce0-2bc1-4c20-8af6-0cedfc677394.MOBHYCWRBMMQGUZG (try 1)
+2025-08-21 13:06:31,013 INFO: [FAST] Visiting https://www.flipkart.com/redmi-note-12-lunar-black-128-gb/p/itm6ba19bad63915?pid=MOBGNYHZEHBAZQN7&lid=LSTMOBGNYHZEHBAZQN7VG5ZWL&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:06:33,004 INFO: [FAST] Visiting https://www.flipkart.com/realme-n65-5g-amber-gold-128-gb/p/itmd927409b843e3 (try 1)
+2025-08-21 13:06:35,647 INFO: [FAST] Visiting https://www.flipkart.com/realme-narzo-n65-5g-deep-green-128-gb/p/itm6378f5785d47b?pid=MOBHFFNQAMDHZZF7&lid=LSTMOBHFFNQAMDHZZF7ZVBJFI&marketplace=FLIPKART (try 1)
+2025-08-21 13:06:35,971 INFO: [FAST] Visiting https://www.flipkart.com/oneplus-12r-iron-gray-128-gb/p/itm347349f7db2f2?pid=MOBGXGT7YP8GPTGU&lid=LSTMOBGXGT7YP8GPTGU955LWD&marketplace=FLIPKART&store=tyy/4io&srno=b_1_24&otracker=browse&fm=organic&iid=33fd44aa-b9cd-4e79-9b12-2764f23dc6e6.MOBGXGT7YP8GPTGU.SEARCH&ppt=None&ppn=None&ssid=w8aepc73ls0000001736642160683 (try 1)
+2025-08-21 13:06:38,792 INFO: [FAST] Visiting https://www.flipkart.com/vivo-v30-5g-peacock-green-128-gb/p/itme3a94b78a025f?pid=MOBGYGCBTNFP2UYD&lid=LSTMOBGYGCBTNFP2UYD9VGKVD&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:06:39,106 INFO: [FAST] Visiting https://www.flipkart.com/oneplus-12r-iron-grey-256-gb/p/itm347349f7db2f2?pid=MOBGXGT7XCHTPRBJ&lid=LSTMOBGXGT7XCHTPRBJNYE4FA&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:06:43,402 INFO: [FAST] Visiting https://www.flipkart.com/product/p/itme?pid=MOBGRNZ3FX5XNR2T&ctx=eyJjYXJkQ29udGV4dCI6eyJhdHRyaWJ1dGVzIjp7InNvdXJjZUNvbnRlbnRUeXBlIjp7InNpbmdsZVZhbHVlQXR0cmlidXRlIjp7ImtleSI6InNvdXJjZUNvbnRlbnRUeXBlIiwiaW5mZXJlbmNlVHlwZSI6IlNDVCIsInZhbHVlIjoiQUQiLCJ2YWx1ZVR5cGUiOiJTSU5HTEVfVkFMVUVEIn19fX19&nnc=IFFQ8G0Y4LFR_AD (try 1)
+2025-08-21 13:06:46,419 INFO: [FAST] Visiting https://www.flipkart.com/redmi-note-12-sunrise-gold-128-gb/p/itm4e485ddec3bbf?pid=MOBGNYHZ7WRZ2RGT&affid=haribabul2 (try 1)
+2025-08-21 13:06:50,482 ERROR: Fast offer scrape error Message: timeout: Timed out receiving message from renderer: 22.352
+  (Session info: chrome=139.0.7258.67)
+Stacktrace:
+	GetHandleVerifier [0x0xb5ffc3+65331]
+	GetHandleVerifier [0x0xb60004+65396]
+	(No symbol) [0x0x953f63]
+	(No symbol) [0x0x944c2b]
+	(No symbol) [0x0x944961]
+	(No symbol) [0x0x942904]
+	(No symbol) [0x0x9433cd]
+	(No symbol) [0x0x94fbf9]
+	(No symbol) [0x0x9610b5]
+	(No symbol) [0x0x966aa6]
+	(No symbol) [0x0x943a0d]
+	(No symbol) [0x0x960ea5]
+	(No symbol) [0x0x9e2f03]
+	(No symbol) [0x0x9c12d6]
+	(No symbol) [0x0x990910]
+	(No symbol) [0x0x991784]
+	GetHandleVerifier [0x0xda38b3+2439203]
+	GetHandleVerifier [0x0xd9eae2+2419282]
+	GetHandleVerifier [0x0xb8712a+225434]
+	GetHandleVerifier [0x0xb76e08+159096]
+	GetHandleVerifier [0x0xb7dd5d+187597]
+	GetHandleVerifier [0x0xb67ad8+96840]
+	GetHandleVerifier [0x0xb67c62+97234]
+	GetHandleVerifier [0x0xb5277a+9962]
+	BaseThreadInitThunk [0x0x764d5d49+25]
+	RtlInitializeExceptionChain [0x0x778dd2fb+107]
+	RtlGetAppContainerNamedObjectPath [0x0x778dd281+561]
+
+2025-08-21 13:06:50,879 INFO: [FAST] Visiting https://www.flipkart.com/motorola-g14-sky-blue-128-gb/p/itme6e3af09b1936?pid=MOBGQFX8XRKKCRWZ&lid=LSTMOBGQFX8XRKKCRWZ13GRRK&marketplace=FLIPKART&store=tyy/4io&srno=b_4_87&otracker=browse&fm=organic&iid=2385925c-e92e-4c21-af7c-3b23d56429fd.MOBGQFX8XRKKCRWZ.SEARCH&ppt=None&ppn=None&ssid=28tkyfkpm80000001719608120317 (try 1)
+2025-08-21 13:06:51,399 INFO: [FAST] Visiting https://www.flipkart.com/product/p/itme?pid=MOBGRNZ3FX5XNR2T&ctx=eyJjYXJkQ29udGV4dCI6eyJhdHRyaWJ1dGVzIjp7InNvdXJjZUNvbnRlbnRUeXBlIjp7InNpbmdsZVZhbHVlQXR0cmlidXRlIjp7ImtleSI6InNvdXJjZUNvbnRlbnRUeXBlIiwiaW5mZXJlbmNlVHlwZSI6IlNDVCIsInZhbHVlIjoiQUQiLCJ2YWx1ZVR5cGUiOiJTSU5HTEVfVkFMVUVEIn19fX19&nnc=IFFQ8G0Y4LFR_AD (try 1)
+2025-08-21 13:06:54,178 INFO: [FAST] Visiting https://www.flipkart.com/oneplus-12r-cool-blue-256-gb/p/itm347349f7db2f2?pid=MOBGXGT7HKG8JFGU&lid=LSTMOBGXGT7HKG8JFGUBQOIDG&marketplace=FLIPKART&store=tyy/4io&srno=b_1_14&otracker=browse&fm=organic&iid=8bb794da-7121-4627-b1f3-ec74b6cb1f0f.MOBGXGT7HKG8JFGU.SEARCH&ppt=None&ppn=None&ssid=at0yr15e9c0000001733985680736 (try 1)
+2025-08-21 13:07:01,893 INFO: [FAST] Visiting https://www.flipkart.com/motorola-g14-butter-cream-128-gb/p/itm1be445b42514c?pid=MOBGQFX8XAJ3KHZ2&lid=LSTMOBGQFX8XAJ3KHZ27WHK9K&marketplace=FLIPKART (try 1)
+2025-08-21 13:07:01,883 ERROR: Fast offer scrape error Message: timeout: Timed out receiving message from renderer: 24.256
+  (Session info: chrome=139.0.7258.67)
+Stacktrace:
+	GetHandleVerifier [0x0xc2ffc3+65331]
+	GetHandleVerifier [0x0xc30004+65396]
+	(No symbol) [0x0xa23f63]
+	(No symbol) [0x0xa14c2b]
+	(No symbol) [0x0xa14961]
+	(No symbol) [0x0xa12904]
+	(No symbol) [0x0xa133cd]
+	(No symbol) [0x0xa1fbf9]
+	(No symbol) [0x0xa310b5]
+	(No symbol) [0x0xa36aa6]
+	(No symbol) [0x0xa13a0d]
+	(No symbol) [0x0xa30ea5]
+	(No symbol) [0x0xab2f03]
+	(No symbol) [0x0xa912d6]
+	(No symbol) [0x0xa60910]
+	(No symbol) [0x0xa61784]
+	GetHandleVerifier [0x0xe738b3+2439203]
+	GetHandleVerifier [0x0xe6eae2+2419282]
+	GetHandleVerifier [0x0xc5712a+225434]
+	GetHandleVerifier [0x0xc46e08+159096]
+	GetHandleVerifier [0x0xc4dd5d+187597]
+	GetHandleVerifier [0x0xc37ad8+96840]
+	GetHandleVerifier [0x0xc37c62+97234]
+	GetHandleVerifier [0x0xc2277a+9962]
+	BaseThreadInitThunk [0x0x764d5d49+25]
+	RtlInitializeExceptionChain [0x0x778dd2fb+107]
+	RtlGetAppContainerNamedObjectPath [0x0x778dd281+561]
+
+2025-08-21 13:07:02,593 INFO: [FAST] Visiting https://www.flipkart.com/poco-x6-5g-snowstorm-white-256-gb/p/itm705116870e629?pid=MOBGWMGBGPMDMYQZ&cmpid=product.share.pp&_refId=PP.19cc6b0c-b234-4de3-bd49-0b5eb71b9c16.MOBGWMGBGPMDMYQZ (try 1)
+2025-08-21 13:07:02,921 INFO: [FAST] Visiting http://www.flipkart.com/realme-p1-speed-5g-brushed-blue-128-gb/p/itm043baaa17426f?pid=MOBH4TV9K3HYNFQF&lid=LSTMOBH4TV9K3HYNFQFCF0CPM&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:07:05,421 INFO: [FAST] Visiting https://www.flipkart.com/motorola-g14-sky-blue-128-gb/p/itme6e3af09b1936?pid=MOBGQFX8XRKKCRWZ&cmpid=product.share.pp&_refId=PP.937eee1a-6cc6-4c4d-9c96-1a6843c54149.MOBGQFX8XRKKCRWZ&lid=LSTMOBGQFX8XRKKCRWZ13GRRK (try 1)
+2025-08-21 13:07:08,905 INFO: [FAST] Visiting https://www.flipkart.com/oppo-f25-pro-5g-coral-purple-128-gb/p/itm9451b9c477991?pid=MOBGZFDWBNU6AM4U&cmpid=product.share.pp&_refId=PP.b18c4105-048b-47da-9a39-53677de8e186.MOBGZFDWBNU6AM4U (try 1)
+2025-08-21 13:07:09,242 INFO: [FAST] Visiting https://www.flipkart.com/vivo-v30-5g-andaman-blue-256-gb/p/itme3a94b78a025f?pid=MOBGYGCB4ZQNFMZF&marketplace=FLIPKART&cmpid=product.share.pp&_refId=PP.2d3ee33e-107e-4b1d-815f-9c49e4c2bf0d.MOBGYGCB4ZQNFMZF (try 1)
+2025-08-21 13:07:12,780 INFO: [FAST] Visiting https://www.flipkart.com/realme-70-turbo-5g-turbo-yellow-128-gb/p/itm7ebb13c5b0bcb?pid=MOBH4RZFXGJCYSED&cmpid=product.share.pp&_refId=PP.1f28815f-907b-4555-b77f-c1d8b418f11f.MOBH4RZFXGJCYSED (try 1)
+2025-08-21 13:07:12,820 INFO: [FAST] Visiting https://www.flipkart.com/poco-x6-5g-mirror-black-256-gb/p/itm2fed707d6727d?otracker=product_breadCrumbs_POCO+X6+5G+(Mirror+Black,+256+GB)+(12+GB+RAM) (try 1)
+2025-08-21 13:07:15,912 ERROR: Price/stock fast error Message: timeout: Timed out receiving message from renderer: 25.000
+  (Session info: chrome=139.0.7258.67)
+Stacktrace:
+	GetHandleVerifier [0x0xb5ffc3+65331]
+	GetHandleVerifier [0x0xb60004+65396]
+	(No symbol) [0x0x953f63]
+	(No symbol) [0x0x944c2b]
+	(No symbol) [0x0x944961]
+	(No symbol) [0x0x942904]
+	(No symbol) [0x0x9433cd]
+	(No symbol) [0x0x94fbf9]
+	(No symbol) [0x0x9610b5]
+	(No symbol) [0x0x966aa6]
+	(No symbol) [0x0x943a0d]
+	(No symbol) [0x0x960ea5]
+	(No symbol) [0x0x9e2ada]
+	(No symbol) [0x0x9c12d6]
+	(No symbol) [0x0x990910]
+	(No symbol) [0x0x991784]
+	GetHandleVerifier [0x0xda38b3+2439203]
+	GetHandleVerifier [0x0xd9eae2+2419282]
+	GetHandleVerifier [0x0xb8712a+225434]
+	GetHandleVerifier [0x0xb76e08+159096]
+	GetHandleVerifier [0x0xb7dd5d+187597]
+	GetHandleVerifier [0x0xb67ad8+96840]
+	GetHandleVerifier [0x0xb67c62+97234]
+	GetHandleVerifier [0x0xb5277a+9962]
+	BaseThreadInitThunk [0x0x764d5d49+25]
+	RtlInitializeExceptionChain [0x0x778dd2fb+107]
+	RtlGetAppContainerNamedObjectPath [0x0x778dd281+561]
+
+2025-08-21 13:07:17,539 INFO: [FAST] Visiting https://www.flipkart.com/oppo-f25-pro-5g-lava-red-128-gb/p/itm9451b9c477991?pid=MOBGXX3VNCYH65CM&cmpid=product.share.pp&_refId=PP.9634fee3-744f-48d7-9917-cdddfc6e5ef6.MOBGXX3VNCYH65CM&lid=LSTMOBGXX3VNCYH65CMXL5ILC (try 1)
+2025-08-21 13:07:18,911 INFO: [FAST] Visiting http://www.flipkart.com/gfive-a9-c/p/itm887ec13c0e5bf?pid=MOBHC4864FA2ACMK&lid=LSTMOBHC4864FA2ACMKHI38YJ&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:07:20,935 INFO: [FAST] Visiting http://www.flipkart.com/samsung-galaxy-a36-5g-awesome-black-256-gb/p/itm5722b4a15349d?pid=MOBH9RNGMSYW6BVB&lid=LSTMOBH9RNGMSYW6BVBNW25WT&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:07:23,475 INFO: [FAST] Visiting https://www.flipkart.com/realme-narzo-n65-5g-deep-green-128-gb/p/itm6378f5785d47b?pid=MOBHFFNQAMDHZZF7&cmpid=product.share.pp&_refId=PP.938138df-250d-459b-b450-334df8a884a9.MOBHFFNQAMDHZZF7&lid=LSTMOBHFFNQAMDHZZF7GWZWJE (try 1)
+2025-08-21 13:07:24,780 INFO: [FAST] Visiting https://www.flipkart.com/redmi-note-12-lunar-black-64-gb/p/itm6756d6e7a86be?pid=MOBGNYHZJGGE3ZHM&lid=LSTMOBGNYHZJGGE3ZHMAALUF4&marketplace=FLIPKART&store=tyy/4io&srno=b_1_2&otracker=browse&fm=organic&iid=en_fjH2GUgHFmlwzb8u_2jei8TDVGJ8gLuu2JUtY_JsvNeLAYPheXzH4rKDMeIQK8Oa_-VykNeZX71Htx_rKSaZPw%3D%3D&ppt=None&ppn=None&ssid=37rm0nkg4w0000001697977028028 (try 1)
+2025-08-21 13:07:25,096 INFO: [FAST] Visiting https://www.flipkart.com/redmi-note-12-sunrise-gold-128-gb/p/itm4e485ddec3bbf?pid=MOBGNYHZ7WRZ2RGT&cmpid=product.share.pp&_refId=PP.d35235c1-1af2-464b-a8d8-cb20f323e01b.MOBGNYHZ7WRZ2RGT&lid=LSTMOBGNYHZ7WRZ2RGTI6FLOY (try 1)
+2025-08-21 13:07:28,083 INFO: [FAST] Visiting https://www.flipkart.com/realme-14-pro-5g-pearl-white-256-gb/p/itm654c5269620d2?pid=MOBH84ZX7YFMFGDJ&lid=LSTMOBH84ZX7YFMFGDJPWXU7X&marketplace=FLIPKART&hl_lid&store=tyy/4io (try 1)
+2025-08-21 13:07:28,088 INFO: [FAST] Visiting http://www.flipkart.com/samsung-galaxy-a36-5g-awesome-black-256-gb/p/itmb641e1c77cc60?pid=MOBH9RNG5BH5JHPE&lid=LSTMOBH9RNG5BH5JHPE8QVRFF&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:07:30,782 INFO: [FAST] Visiting https://www.flipkart.com/oneplus-12r-5g-irony-gray-256-gb/p/itmed0783fbab3d9?pid=MOBGXGT7XCHTPRBJ&lid=LSTMOBGXGT7XCHTPRBJYE9SA6&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:07:31,243 INFO: [FAST] Visiting https://www.flipkart.com/oneplus-12r-cool-blue-256-gb/p/itmce6c3b73e4aa4?pid=MOBGXGT7HKG8JFGU&lid=LSTMOBGXGT7HKG8JFGUI03HGX&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:07:34,058 INFO: [FAST] Visiting http://www.flipkart.com/samsung-galaxy-m56-5g-light-green-128-gb/p/itma212775a49b1d?pid=MOBHBH86FM9VUCGU&lid=LSTMOBHBH86FM9VUCGU5YRWXW&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:07:34,191 INFO: [FAST] Visiting http://www.flipkart.com/poco-m6-plus-5g-graphite-black-128-gb/p/itm82a1353906425?pid=MOBH2M2DN8ZFH7XK&lid=LSTMOBH2M2DN8ZFH7XKSXYCSZ&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:07:34,583 INFO: [FAST] Visiting http://www.flipkart.com/honor-200-5g-black-512-gb/p/itm6c73c53970f43?pid=MOBH34RU4S8Q5CBJ&lid=LSTMOBH34RU4S8Q5CBJFVMHCT&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:07:36,559 INFO: [FAST] Visiting http://www.flipkart.com/apple-iphone-16-pro-max-desert-titanium-256-gb/p/itmb102b8a51100e?pid=MOBH4DQFTQHZAKAF&lid=LSTMOBH4DQFTQHZAKAFRC45AZ&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:07:36,983 INFO: [FAST] Visiting http://www.flipkart.com/realme-narzo-n65-5g-amber-gold-128-gb/p/itm6378f5785d47b?pid=MOBHFFNQWMBHHAYW&lid=LSTMOBHFFNQWMBHHAYWRMGFDG&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:07:40,231 INFO: [FAST] Visiting https://www.flipkart.com/g14/p/itme6e3af09b1936 (try 1)
+2025-08-21 13:07:40,425 INFO: [FAST] Visiting http://www.flipkart.com/samsung-galaxy-a56-5g-awesome-olive-128-gb/p/itm81265b7c9602c?pid=MOBH9RNG5SA9ADHS&lid=LSTMOBH9RNG5SA9ADHSM1X5TV&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:07:40,711 INFO: [FAST] Visiting https://www.flipkart.com/realme-gt-6-fluid-silver-256-gb/p/itm1a28b99c077b5?pid=MOBHFGUHSF9EGJPR&marketplace=FLIPKART&cmpid=product.share.pp&_refId=PP.eaf9a868-e324-45a7-8570-146b621810bd.MOBHFGUHSF9EGJPR (try 1)
+2025-08-21 13:07:40,930 INFO: [FAST] Visiting http://www.flipkart.com/honor-200-5g-black-512-gb/p/itm6c73c53970f43?pid=MOBH34RU4S8Q5CBJ&lid=LSTMOBH34RU4S8Q5CBJI5PQRX&marketplace=FLIPKART&cmpid=content_mobile_8965229628_gmc (try 1)
+2025-08-21 13:07:44,860 INFO: [FAST] Visiting https://www.flipkart.com/realme-70-turbo-5g-turbo-yellow-128-gb/p/itm7ebb13c5b0bcb?pid=MOBH4RZFXGJCYSED&cmpid=product.share.pp&_refId=PP.1f28815f-907b-4555-b77f-c1d8b418f11f.MOBH4RZFXGJCYSED (try 1)

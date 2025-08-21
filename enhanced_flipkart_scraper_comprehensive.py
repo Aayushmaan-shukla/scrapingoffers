@@ -1185,10 +1185,41 @@ def process_comprehensive_flipkart_links(input_file="comprehensive_amazon_offers
     - Smart session recycling for better stability
     """
     
-    # Create backup before processing
-    backup_file = f"{input_file}.backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-    shutil.copy2(input_file, backup_file)
-    print(f"💾 Created backup: {backup_file}")
+    # Resolve and validate input file BEFORE any processing
+    original_input_arg = input_file
+    if not os.path.isabs(input_file):
+        # Try current working directory first
+        cwd_candidate = os.path.join(os.getcwd(), input_file)
+        if os.path.exists(cwd_candidate):
+            input_file = cwd_candidate
+        else:
+            # Try script directory
+            script_dir_candidate = os.path.join(os.path.dirname(os.path.abspath(__file__)), original_input_arg)
+            if os.path.exists(script_dir_candidate):
+                input_file = script_dir_candidate
+
+    if not os.path.exists(input_file):
+        msg = (
+            "❌ INPUT FILE NOT FOUND: '" + original_input_arg + "'\n" +
+            "Tried paths:\n" +
+            "  • Provided path: " + original_input_arg + "\n" +
+            "  • Resolved (cwd): " + os.path.join(os.getcwd(), original_input_arg) + "\n" +
+            "  • Resolved (script dir): " + os.path.join(os.path.dirname(os.path.abspath(__file__)), original_input_arg) + "\n" +
+            "👉 Fix: Supply a valid path with --input-file <file.json> or place the file in the working directory."
+        )
+        print(msg, flush=True)
+        logging.error(msg)
+        return  # Graceful abort instead of raising (prevents multi-process trace storms)
+
+    # Create backup before processing (guarded)
+    try:
+        backup_file = f"{input_file}.backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        shutil.copy2(input_file, backup_file)
+        print(f"💾 Created backup: {backup_file}")
+    except Exception as e:
+        logging.warning(f"Could not create backup for {input_file}: {e}")
+        backup_file = None
+        print(f"⚠️  Could not create backup (continuing): {e}")
     
     # Load the JSON data
     print(f"📖 Loading data from {input_file}")
@@ -1703,6 +1734,11 @@ if __name__ == "__main__":
         print(f"📝 Auto output file: {args.output_file}")
 
     if args.run_all_shards:
+        # Pre-flight: ensure input file exists BEFORE spawning many processes
+        if not os.path.exists(args.input_file):
+            print(f"❌ Cannot start shard processes. Input file not found: {args.input_file}")
+            print("👉 Fix: Provide a valid file with --input-file <path> or place the file in the current directory.")
+            sys.exit(2)
         total = args.total_shards or args.workers
         base_output = args.output_file.replace('.json','') if args.output_file else 'flipkart_output'
         shard_files = []
