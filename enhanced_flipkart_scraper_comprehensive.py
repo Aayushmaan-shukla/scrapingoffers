@@ -24,6 +24,7 @@ import argparse
 import multiprocessing
 import sys
 import types
+import glob
 from contextlib import contextmanager
 
 # Platform-specific imports
@@ -1158,7 +1159,8 @@ def process_comprehensive_flipkart_links(input_file="comprehensive_amazon_offers
                                        shard_index: int | None = None,
                                        total_shards: int | None = None,
                                        session_batch_size: int = 100,
-                                       fast: bool = False):
+                                       fast: bool = False,
+                                       skip_backup: bool = False):
     """
     Process ALL Flipkart store links in the comprehensive JSON file
     - Completely isolates Amazon and Croma offers (no changes)
@@ -1211,15 +1213,16 @@ def process_comprehensive_flipkart_links(input_file="comprehensive_amazon_offers
         logging.error(msg)
         return  # Graceful abort instead of raising (prevents multi-process trace storms)
 
-    # Create backup before processing (guarded)
-    try:
-        backup_file = f"{input_file}.backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-        shutil.copy2(input_file, backup_file)
-        print(f"💾 Created backup: {backup_file}")
-    except Exception as e:
-        logging.warning(f"Could not create backup for {input_file}: {e}")
-        backup_file = None
-        print(f"⚠️  Could not create backup (continuing): {e}")
+    # Create backup before processing (guarded & optional)
+    backup_file = None
+    if not skip_backup:
+        try:
+            backup_file = f"{input_file}.backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            shutil.copy2(input_file, backup_file)
+            print(f"💾 Created backup: {backup_file}")
+        except Exception as e:
+            logging.warning(f"Could not create backup for {input_file}: {e}")
+            print(f"⚠️  Could not create backup (continuing): {e}")
     
     # Load the JSON data
     print(f"📖 Loading data from {input_file}")
@@ -1369,6 +1372,11 @@ def process_comprehensive_flipkart_links(input_file="comprehensive_amazon_offers
         if driver:
             try:
                 driver.quit()
+                # Neutralize destructor to avoid WinError 6 spam on Windows
+                try:
+                    driver.__del__ = lambda *a, **k: None  # type: ignore
+                except Exception:
+                    pass
             except Exception:
                 pass
         force_cleanup()
@@ -1724,6 +1732,8 @@ if __name__ == "__main__":
     parser.add_argument('--keep-containers', action='store_true', help='(Docker orchestration) keep containers after exit (omit --rm)')
     parser.add_argument('--single-output', help='Merge all shard results into this single JSON file after parallel run')
     parser.add_argument('--cleanup-shards', action='store_true', help='Delete shard JSON files after successful merge')
+    parser.add_argument('--merge-only', action='store_true', help='Only merge existing shard outputs (requires --single-output)')
+    parser.add_argument('--skip-backup', action='store_true', help='Skip creating backup of the input file')
     args, unknown = parser.parse_known_args()
 
     # Ensure output_file never None before any use
@@ -1732,6 +1742,39 @@ if __name__ == "__main__":
         base_name = os.path.splitext(os.path.basename(args.input_file))[0]
         args.output_file = f"{base_name}_flipkart_{ts}.json"
         print(f"📝 Auto output file: {args.output_file}")
+
+    # Merge-only mode (no scraping, just combine existing shards)
+    if args.merge_only:
+        if not args.single_output:
+            print('❌ --merge-only requires --single-output <merged.json>')
+            sys.exit(2)
+        # Determine prefix for shard discovery
+        if args.shard_prefix:
+            prefix = args.shard_prefix.rstrip('.json')
+        elif args.output_file:
+            prefix = args.output_file.replace('.json','')
+        else:
+            prefix = os.path.splitext(os.path.basename(args.input_file))[0]
+        pattern = f"{prefix}.shard*of*.json"
+        shard_files = sorted(glob.glob(pattern))
+        if not shard_files:
+            print(f"❌ No shard files found with pattern {pattern}")
+            sys.exit(1)
+        print(f"🔍 Found {len(shard_files)} shard files. Starting merge...")
+        try:
+            merge_shard_outputs(args.input_file, shard_files, args.single_output)
+            if args.cleanup_shards:
+                for sf in shard_files:
+                    try:
+                        os.remove(sf)
+                        print(f"🗑  Removed shard file {sf}")
+                    except Exception as e:
+                        print(f"⚠️  Could not remove {sf}: {e}")
+            print(f"✅ Merge-only completed → {args.single_output}")
+        except Exception as e:
+            print(f"❌ Merge-only failed: {e}")
+            sys.exit(1)
+        sys.exit(0)
 
     if args.run_all_shards:
         # Pre-flight: ensure input file exists BEFORE spawning many processes
@@ -1753,7 +1796,9 @@ if __name__ == "__main__":
                 'shard_index': shard,
                 'total_shards': total,
                 'session_batch_size': args.session_batch_size,
-                'fast': args.fast
+                'fast': args.fast,
+                # Only create backup on first shard unless skip explicitly set
+                'skip_backup': (args.skip_backup or shard != 0)
             })
             p.start()
             procs.append(p)
@@ -1785,5 +1830,6 @@ if __name__ == "__main__":
             shard_index=args.shard_index,
             total_shards=args.total_shards,
             session_batch_size=args.session_batch_size,
-            fast=args.fast
+            fast=args.fast,
+            skip_backup=args.skip_backup
         )
