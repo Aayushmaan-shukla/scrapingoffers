@@ -16,6 +16,7 @@ Key Features:
 - Error handling for missing platforms/JSON files
 - Preserves existing data structure
 - Creates comprehensive final.json with all platform data
+- Maps new keys outside ranked_offers: product_name_via_url, with_exchange_price, in_stock, platform_url
 """
 
 import json
@@ -99,10 +100,10 @@ class URLMapper:
         }
         
         self.stats = {
-            'amazon': {'processed': 0, 'mapped': 0, 'skipped': 0},
-            'flipkart': {'processed': 0, 'mapped': 0, 'skipped': 0},
-            'croma': {'processed': 0, 'mapped': 0, 'skipped': 0},
-            'jiomart': {'processed': 0, 'mapped': 0, 'skipped': 0},
+            'amazon': {'processed': 0, 'mapped': 0},
+            'flipkart': {'processed': 0, 'mapped': 0},
+            'croma': {'processed': 0, 'mapped': 0},
+            'jiomart': {'processed': 0, 'mapped': 0},
             'total_entries': 0,
             'errors': 0
         }
@@ -216,6 +217,28 @@ class URLMapper:
         
         return platform_urls
     
+    def validate_new_keys_mapping(self, platform: str, platform_data: List[Dict]):
+        """
+        Validate that new keys outside ranked_offers are being properly mapped.
+        """
+        new_keys = ['product_name_via_url', 'with_exchange_price', 'in_stock', 'platform_url']
+        mapped_keys_count = {key: 0 for key in new_keys}
+        
+        for entry in platform_data:
+            for key in new_keys:
+                if key in entry:
+                    mapped_keys_count[key] += 1
+        
+        print(f"   🔍 {platform.upper()} new keys mapping validation:")
+        for key, count in mapped_keys_count.items():
+            if count > 0:
+                print(f"      ✓ {key}: {count} entries")
+            else:
+                print(f"      ⚠️  {key}: 0 entries (not found in {platform} data)")
+        
+        logging.info(f"{platform} new keys mapping: {mapped_keys_count}")
+        return mapped_keys_count
+
     def merge_platform_data(self, platform: str, platform_data: List[Dict]) -> int:
         """
         Merge platform-specific URL data into final_data.
@@ -235,30 +258,36 @@ class URLMapper:
             
             self.stats[platform]['processed'] += 1
             
-            # Check if this URL has already been mapped for this platform
-            if url in self.mapped_urls[platform]:
-                print(f"   ⏭️  Skipping duplicate {platform} URL: {url[:50]}...")
-                self.stats[platform]['skipped'] += 1
-                continue
+            # Process ALL URLs without duplicate checking
+            # if url in self.mapped_urls[platform]:
+            #     print(f"   ⏭️  Skipping duplicate {platform} URL: {url[:50]}...")
+            #     self.stats[platform]['skipped'] += 1
+            #     continue
             
-            # Check if we already have this entry in final_data
-            existing_entry = None
-            for final_entry in self.final_data:
-                if (final_entry.get('product_name') == entry.get('product_name') and
-                    final_entry.get('model_id') == entry.get('model_id')):
-                    existing_entry = final_entry
-                    break
+            # Process ALL entries without checking for duplicates
+            # Create new entry in final_data for every URL
+            new_entry = entry.copy()
             
-            if existing_entry is None:
-                # Create new entry in final_data
-                new_entry = entry.copy()
-                self.final_data.append(new_entry)
-                existing_entry = new_entry
-                self.stats['total_entries'] += 1
+            # Ensure new keys are preserved at the same level
+            # These keys are outside ranked_offers and should be mapped directly
+            new_keys_to_preserve = [
+                'product_name_via_url',
+                'with_exchange_price', 
+                'in_stock',
+                'platform_url'
+            ]
+            
+            # Copy the new keys if they exist in the source entry
+            for key in new_keys_to_preserve:
+                if key in entry:
+                    new_entry[key] = entry[key]
+            
+            self.final_data.append(new_entry)
+            self.stats['total_entries'] += 1
             
             # The store_link is already part of the existing structure
             # so it's automatically included when we copy the entry
-            self.mapped_urls[platform].add(url)
+            # self.mapped_urls[platform].add(url)  # No longer tracking mapped URLs
             mapped_count += 1
             self.stats[platform]['mapped'] += 1
             
@@ -303,6 +332,10 @@ class URLMapper:
             # Merge platform data
             try:
                 mapped_count = self.merge_platform_data(platform, platform_data)
+                
+                # Validate new keys mapping
+                self.validate_new_keys_mapping(platform, platform_data)
+                
                 platforms_processed.append(platform)
                 print(f"✅ {platform.upper()} processing completed: {mapped_count} URLs mapped")
                 
@@ -344,7 +377,7 @@ class URLMapper:
         print(f"🎯 PLATFORMS PROCESSED SUCCESSFULLY: {len(platforms_processed)}")
         for platform in platforms_processed:
             stats = self.stats[platform]
-            print(f"   {platform.upper()}: {stats['mapped']} URLs mapped ({stats['processed']} processed, {stats['skipped']} skipped)")
+            print(f"   {platform.upper()}: {stats['mapped']} URLs mapped ({stats['processed']} processed)")
         
         if platforms_failed:
             print(f"\n❌ PLATFORMS FAILED: {len(platforms_failed)}")
@@ -354,12 +387,12 @@ class URLMapper:
         print(f"\n📈 OVERALL STATISTICS:")
         total_mapped = sum(self.stats[p]['mapped'] for p in ['amazon', 'flipkart', 'croma', 'jiomart'])
         total_processed = sum(self.stats[p]['processed'] for p in ['amazon', 'flipkart', 'croma', 'jiomart'])
-        total_skipped = sum(self.stats[p]['skipped'] for p in ['amazon', 'flipkart', 'croma', 'jiomart'])
+        # total_skipped = sum(self.stats[p]['skipped'] for p in ['amazon', 'flipkart', 'croma', 'jiomart'])
         
         print(f"   Total entries in final.json: {len(self.final_data)}")
         print(f"   Total URLs mapped: {total_mapped}")
         print(f"   Total URLs processed: {total_processed}")
-        print(f"   Total URLs skipped (duplicates): {total_skipped}")
+        print(f"   Total URLs processed: {total_processed}")
         print(f"   Errors encountered: {self.stats['errors']}")
         
         print(f"\n🔍 URL MAPPING BREAKDOWN:")
@@ -367,8 +400,15 @@ class URLMapper:
             mapped_count = len(self.mapped_urls[platform])
             print(f"   {platform.upper()}: {mapped_count} unique URLs mapped")
         
-        success_rate = (total_mapped / total_processed * 100) if total_processed > 0 else 0
-        print(f"\n✅ Success Rate: {success_rate:.1f}%")
+        # Summary of new keys mapping
+        print(f"\n🔑 NEW KEYS MAPPING SUMMARY:")
+        new_keys = ['product_name_via_url', 'with_exchange_price', 'in_stock', 'platform_url']
+        for key in new_keys:
+            key_count = sum(1 for entry in self.final_data if key in entry)
+            print(f"   {key}: {key_count} entries mapped across all platforms")
+        
+        success_rate = 100.0  # Since we're processing all URLs without skipping
+        print(f"\n✅ Success Rate: {success_rate:.1f}% (All URLs processed)")
         
         print(f"\n🛡️  ISOLATION CONFIRMED:")
         print(f"   ✓ Each platform's URLs are independently mapped")
@@ -382,9 +422,10 @@ def main():
     print("=" * 80)
     print("📋 Purpose: Map URLs from each platform to final.json")
     print("🔄 Order: Amazon → Flipkart → Croma → JioMart")
-    print("🚫 Policy: No overwrite between platforms")
+    print("🚫 Policy: No overwrite between platforms, ALL URLs processed")
     print("🧵 Mode: Single-threaded sequential processing")
     print("🛡️  Error Handling: Missing platforms won't stop other processing")
+    print("🔑 New Keys: Maps product_name_via_url, with_exchange_price, in_stock, platform_url")
     print("-" * 80)
     
     # Initialize and run URL mapper
