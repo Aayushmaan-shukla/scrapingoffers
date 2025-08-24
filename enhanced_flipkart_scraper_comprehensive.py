@@ -47,10 +47,15 @@ from dataclasses import dataclass
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException, NoSuchElementException
+from selenium.common.exceptions import TimeoutException, NoSuchElementException, InvalidSessionIdException, WebDriverException
 import shutil
 from flask import Flask, request, jsonify
 import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from queue import Queue
+import multiprocessing
+import random
+import math
 
 # Setup logging
 logging.basicConfig(
@@ -59,6 +64,15 @@ logging.basicConfig(
     format='%(asctime)s %(levelname)s: %(message)s',
     level=logging.INFO
 )
+
+# Threading locks for safe concurrent operations
+VISITED_LOCK = threading.Lock()
+FILE_SAVE_LOCK = threading.Lock()
+STATUS_LOCK = threading.Lock()
+
+# Speed toggles
+# Set FAST_MODE=0 in environment to disable fast-path shortcuts and extra blocking.
+FAST_MODE = os.getenv("FAST_MODE", "1") != "0"
 
 # ===============================================
 # RESOURCE MANAGEMENT UTILITIES
@@ -224,8 +238,9 @@ def append_visited_url(url, file_path="visited_urls_flipkart.txt"):
     Append a newly processed URL to the tracking file
     """
     try:
-        with open(file_path, 'a', encoding='utf-8') as f:
-            f.write(f"{url}\n")
+        with VISITED_LOCK:
+            with open(file_path, 'a', encoding='utf-8') as f:
+                f.write(f"{url}\n")
     except Exception as e:
         print(f"⚠️  Error appending URL to visited file: {e}")
 
@@ -404,107 +419,127 @@ def extract_flipkart_price_and_stock(driver, url, offers_found=False):
                 result['price'] = price_text
                 print(f"   💰 Found Flipkart price: {price_text}")
         
-        # 2. Extract exchange offer text using the exact path specified
+        # 2. Extract exchange offer text using the exact path specified (skippable in FAST_MODE)
         try:
-            # First, run debug analysis to see what's available on the page
-            debug_exchange_elements(soup)
-            
-            # Follow the exact path: container -> _39kFie N3De93 JxFEK3 _48O0EI -> DOjaWF YJG4Cf -> DOjaWF gdgoEp col-8-12 -> cPHDOP col-12-12 -> BRgXml -> label for="BUY_WITH_EXCHANGE" -> VTUEC- JvjVG5 -> div data-disabled="false" data-checked="false" -> -B1t91 -> -KdBdD
-            
-            # Start from the container
-            container = soup.find(id='container')
-            if container:
-                # Find the main wrapper with class "_39kFie N3De93 JxFEK3 _48O0EI"
-                main_wrapper = container.find(class_=lambda x: x and '_39kFie' in x and 'N3De93' in x and 'JxFEK3' in x and '_48O0EI' in x)
-                if main_wrapper:
-                    # Find DOjaWF YJG4Cf
-                    doja_wrapper = main_wrapper.find(class_=lambda x: x and 'DOjaWF' in x and 'YJG4Cf' in x)
-                    if doja_wrapper:
-                        # Find DOjaWF gdgoEp col-8-12
-                        gdgo_wrapper = doja_wrapper.find(class_=lambda x: x and 'DOjaWF' in x and 'gdgoEp' in x and 'col-8-12' in x)
-                        if gdgo_wrapper:
-                            # Find cPHDOP col-12-12 - there might be multiple, so iterate through them
-                            cphd_wrappers = gdgo_wrapper.find_all(class_=lambda x: x and 'cPHDOP' in x and 'col-12-12' in x)
-                            if cphd_wrappers:
-                                print(f"   🔍 Found {len(cphd_wrappers)} cPHDOP col-12-12 elements")
-                                
-                                # Iterate through all cPHDOP col-12-12 elements to find the one with BRgXml
-                                brg_wrapper = None
-                                cphd_wrapper_with_brg = None
-                                
-                                for i, cphd_wrapper in enumerate(cphd_wrappers):
-                                    print(f"      🔍 Checking cPHDOP col-12-12 element {i+1}/{len(cphd_wrappers)}")
-                                    
-                                    # Find BRgXml in this specific cPHDOP element
-                                    brg_wrapper = cphd_wrapper.find(class_='BRgXml')
-                                    if brg_wrapper:
-                                        print(f"      ✅ BRgXml found in cPHDOP col-12-12 element {i+1}")
-                                        cphd_wrapper_with_brg = cphd_wrapper
-                                        break
-                                    else:
-                                        print(f"      ❌ BRgXml NOT found in cPHDOP col-12-12 element {i+1}")
-                                
-                                if brg_wrapper and cphd_wrapper_with_brg:
-                                    # Find label with for="BUY_WITH_EXCHANGE" and specific classes
-                                    exchange_label = brg_wrapper.find('label', attrs={'for': 'BUY_WITH_EXCHANGE'})
-                                    if exchange_label:
-                                        # Check if it has the expected classes
-                                        label_classes = exchange_label.get('class', [])
-                                        expected_classes = ['VKzPTL', 'JESWSS', 'RI1ZCR']
-                                        if all(cls in label_classes for cls in expected_classes):
-                                            print(f"   ✅ BUY_WITH_EXCHANGE label found with correct classes: {label_classes}")
-                                            
-                                            # Find VTUEC- JvjVG5
-                                            vtuec_wrapper = exchange_label.find(class_=lambda x: x and 'VTUEC-' in x and 'JvjVG5' in x)
-                                            if vtuec_wrapper:
-                                                print(f"   ✅ VTUEC- JvjVG5 wrapper found")
-                                                
-                                                # Find div with data-disabled="true" data-checked="false" disabled
-                                                exchange_div = vtuec_wrapper.find('div', attrs={'data-disabled': 'true', 'data-checked': 'false', 'disabled': ''})
-                                                if exchange_div:
-                                                    print(f"   ✅ Exchange div with data-disabled='true' data-checked='false' disabled found")
-                                                    
-                                                    # Find -B1t91
-                                                    b1t91_wrapper = exchange_div.find(class_='-B1t91')
-                                                    if b1t91_wrapper:
-                                                        print(f"   ✅ -B1t91 wrapper found")
-                                                        
-                                                        # Finally find -KdBdD which contains the exchange price
-                                                        exchange_text_element = b1t91_wrapper.find(class_='-KdBdD')
-                                                        if exchange_text_element:
-                                                            exchange_text = exchange_text_element.get_text(strip=True)
-                                                            if exchange_text:
-                                                                result['with_exchange_price'] = exchange_text
-                                                                print(f"   🔁 Found exchange text using exact path: {exchange_text}")
-                                                            else:
-                                                                print(f"   🔁 Exchange element found but no text content")
-                                                        else:
-                                                            print(f"   🔁 -KdBdD element not found in -B1t91 wrapper")
-                                                    else:
-                                                        print(f"   🔁 -B1t91 wrapper not found in exchange div")
-                                                else:
-                                                    print(f"   🔁 Exchange div with data-disabled='true' data-checked='false' disabled not found")
-                                            else:
-                                                print(f"   🔁 VTUEC- JvjVG5 wrapper not found in exchange label")
-                                        else:
-                                            print(f"   🔁 BUY_WITH_EXCHANGE label found but missing expected classes. Found: {label_classes}, Expected: {expected_classes}")
-                                    else:
-                                        print(f"   🔁 BUY_WITH_EXCHANGE label not found in BRgXml")
-                                else:
-                                    print(f"   🔁 BRgXml wrapper not found in any cPHDOP col-12-12 element")
-                            else:
-                                print(f"   🔁 No cPHDOP col-12-12 elements found in DOjaWF gdgoEp")
-                        else:
-                            print(f"   🔁 DOjaWF gdgoEp col-8-12 wrapper not found in DOjaWF YJG4Cf")
-                    else:
-                        print(f"   🔁 DOjaWF YJG4Cf wrapper not found in main wrapper")
+            if FAST_MODE:
+                # Quick path: a light heuristic scan only
+                exchange_label = soup.find('label', attrs={'for': 'BUY_WITH_EXCHANGE'})
+                if exchange_label:
+                    kdbd = exchange_label.find(class_='-KdBdD')
+                    if kdbd:
+                        txt = kdbd.get_text(strip=True)
+                        if txt:
+                            result['with_exchange_price'] = txt
+                # Skip heavy traversal when fast
+                if result['with_exchange_price']:
+                    pass
                 else:
-                    print(f"   🔁 Main wrapper _39kFie N3De93 JxFEK3 _48O0EI not found in container")
+                    # Fallback tiny heuristic
+                    any_kdbd = soup.find(class_='-KdBdD')
+                    if any_kdbd:
+                        t = any_kdbd.get_text(strip=True)
+                        if t and ('₹' in t or any(ch.isdigit() for ch in t)):
+                            result['with_exchange_price'] = t
             else:
-                print(f"   🔁 Container with id='container' not found")
+                # First, run debug analysis to see what's available on the page
+                debug_exchange_elements(soup)
+                
+                # Follow the exact path: container -> _39kFie N3De93 JxFEK3 _48O0EI -> DOjaWF YJG4Cf -> DOjaWF gdgoEp col-8-12 -> cPHDOP col-12-12 -> BRgXml -> label for="BUY_WITH_EXCHANGE" -> VTUEC- JvjVG5 -> div data-disabled="false" data-checked="false" -> -B1t91 -> -KdBdD
+                
+                # Start from the container
+                container = soup.find(id='container')
+                if container:
+                    # Find the main wrapper with class "_39kFie N3De93 JxFEK3 _48O0EI"
+                    main_wrapper = container.find(class_=lambda x: x and '_39kFie' in x and 'N3De93' in x and 'JxFEK3' in x and '_48O0EI' in x)
+                    if main_wrapper:
+                        # Find DOjaWF YJG4Cf
+                        doja_wrapper = main_wrapper.find(class_=lambda x: x and 'DOjaWF' in x and 'YJG4Cf' in x)
+                        if doja_wrapper:
+                            # Find DOjaWF gdgoEp col-8-12
+                            gdgo_wrapper = doja_wrapper.find(class_=lambda x: x and 'DOjaWF' in x and 'gdgoEp' in x and 'col-8-12' in x)
+                            if gdgo_wrapper:
+                                # Find cPHDOP col-12-12 - there might be multiple, so iterate through them
+                                cphd_wrappers = gdgo_wrapper.find_all(class_=lambda x: x and 'cPHDOP' in x and 'col-12-12' in x)
+                                if cphd_wrappers:
+                                    print(f"   🔍 Found {len(cphd_wrappers)} cPHDOP col-12-12 elements")
+                                    
+                                    # Iterate through all cPHDOP col-12-12 elements to find the one with BRgXml
+                                    brg_wrapper = None
+                                    cphd_wrapper_with_brg = None
+                                    
+                                    for i, cphd_wrapper in enumerate(cphd_wrappers):
+                                        print(f"      🔍 Checking cPHDOP col-12-12 element {i+1}/{len(cphd_wrappers)}")
+                                        
+                                        # Find BRgXml in this specific cPHDOP element
+                                        brg_wrapper = cphd_wrapper.find(class_='BRgXml')
+                                        if brg_wrapper:
+                                            print(f"      ✅ BRgXml found in cPHDOP col-12-12 element {i+1}")
+                                            cphd_wrapper_with_brg = cphd_wrapper
+                                            break
+                                        else:
+                                            print(f"      ❌ BRgXml NOT found in cPHDOP col-12-12 element {i+1}")
+                                    
+                                    if brg_wrapper and cphd_wrapper_with_brg:
+                                        # Find label with for="BUY_WITH_EXCHANGE" and specific classes
+                                        exchange_label = brg_wrapper.find('label', attrs={'for': 'BUY_WITH_EXCHANGE'})
+                                        if exchange_label:
+                                            # Check if it has the expected classes
+                                            label_classes = exchange_label.get('class', [])
+                                            expected_classes = ['VKzPTL', 'JESWSS', 'RI1ZCR']
+                                            if all(cls in label_classes for cls in expected_classes):
+                                                print(f"   ✅ BUY_WITH_EXCHANGE label found with correct classes: {label_classes}")
+                                                
+                                                # Find VTUEC- JvjVG5
+                                                vtuec_wrapper = exchange_label.find(class_=lambda x: x and 'VTUEC-' in x and 'JvjVG5' in x)
+                                                if vtuec_wrapper:
+                                                    print(f"   ✅ VTUEC- JvjVG5 wrapper found")
+                                                    
+                                                    # Find div with data-disabled="true" data-checked="false" disabled
+                                                    exchange_div = vtuec_wrapper.find('div', attrs={'data-disabled': 'true', 'data-checked': 'false', 'disabled': ''})
+                                                    if exchange_div:
+                                                        print(f"   ✅ Exchange div with data-disabled='true' data-checked='false' disabled found")
+                                                        
+                                                        # Find -B1t91
+                                                        b1t91_wrapper = exchange_div.find(class_='-B1t91')
+                                                        if b1t91_wrapper:
+                                                            print(f"   ✅ -B1t91 wrapper found")
+                                                            
+                                                            # Finally find -KdBdD which contains the exchange price
+                                                            exchange_text_element = b1t91_wrapper.find(class_='-KdBdD')
+                                                            if exchange_text_element:
+                                                                exchange_text = exchange_text_element.get_text(strip=True)
+                                                                if exchange_text:
+                                                                    result['with_exchange_price'] = exchange_text
+                                                                    print(f"   🔁 Found exchange text using exact path: {exchange_text}")
+                                                                else:
+                                                                    print(f"   🔁 Exchange element found but no text content")
+                                                            else:
+                                                                print(f"   🔁 -KdBdD element not found in -B1t91 wrapper")
+                                                        else:
+                                                            print(f"   🔁 -B1t91 wrapper not found in exchange div")
+                                                    else:
+                                                        print(f"   🔁 Exchange div with data-disabled='true' data-checked='false' disabled not found")
+                                                else:
+                                                    print(f"   🔁 VTUEC- JvjVG5 wrapper not found in exchange label")
+                                            else:
+                                                print(f"   🔁 BUY_WITH_EXCHANGE label found but missing expected classes. Found: {label_classes}, Expected: {expected_classes}")
+                                        else:
+                                            print(f"   🔁 BUY_WITH_EXCHANGE label not found in BRgXml")
+                                    else:
+                                        print(f"   🔁 BRgXml wrapper not found in any cPHDOP col-12-12 element")
+                                else:
+                                    print(f"   🔁 No cPHDOP col-12-12 elements found in DOjaWF gdgoEp")
+                            else:
+                                print(f"   🔁 DOjaWF gdgoEp col-8-12 wrapper not found in DOjaWF YJG4Cf")
+                        else:
+                            print(f"   🔁 DOjaWF YJG4Cf wrapper not found in main wrapper")
+                    else:
+                        print(f"   🔁 Main wrapper _39kFie N3De93 JxFEK3 _48O0EI not found in container")
+                else:
+                    print(f"   🔁 Container with id='container' not found")
                 
             # Fallback: Try the old method if the exact path fails
-            if not result['with_exchange_price']:
+            if not result['with_exchange_price'] and not FAST_MODE:
                 print(f"   🔁 Trying fallback method...")
                 exchange_label = soup.find('label', attrs={'for': 'BUY_WITH_EXCHANGE'})
                 if exchange_label:
@@ -522,7 +557,7 @@ def extract_flipkart_price_and_stock(driver, url, offers_found=False):
                     print(f"   🔁 No BUY_WITH_EXCHANGE label found")
             
             # Additional fallback: Try to find -KdBdD element anywhere on the page
-            if not result['with_exchange_price']:
+            if not result['with_exchange_price'] and not FAST_MODE:
                 print(f"   🔁 Trying additional fallback: searching for -KdBdD anywhere on page...")
                 all_kdbd_elements = soup.find_all(class_='-KdBdD')
                 if all_kdbd_elements:
@@ -539,7 +574,7 @@ def extract_flipkart_price_and_stock(driver, url, offers_found=False):
                     print(f"   🔁 No -KdBdD elements found anywhere on the page")
             
             # Final fallback: Try to find any text that looks like an exchange price
-            if not result['with_exchange_price']:
+            if not result['with_exchange_price'] and not FAST_MODE:
                 print(f"   🔁 Trying final fallback: searching for exchange-related text...")
                 # Look for any text that mentions exchange and contains price
                 exchange_keywords = ['exchange', 'with exchange', 'buy with exchange']
@@ -624,6 +659,9 @@ def extract_flipkart_price_and_stock(driver, url, offers_found=False):
         
         return result
         
+    except (InvalidSessionIdException, WebDriverException) as e:
+        # Bubble up so worker can recreate driver
+        raise
     except Exception as e:
         print(f"   ⚠️  Error extracting price/stock: {e}")
         return {
@@ -1228,31 +1266,40 @@ def get_flipkart_offers(driver, url, max_retries=2):
         try:
             logging.info(f"Visiting Flipkart URL (attempt {attempt + 1}/{max_retries}): {url}")
             driver.get(url)
-            time.sleep(3)
+            # Small settle; avoid long sleeps
+            time.sleep(0.5 if FAST_MODE else 2)
 
             # Close login popup if it appears
             try:
-                close_btn = WebDriverWait(driver, 5).until(
+                close_btn = WebDriverWait(driver, 3 if FAST_MODE else 6).until(
                     EC.element_to_be_clickable((By.XPATH, "//button[contains(text(),'✕')]"))
                 )
                 close_btn.click()
-                time.sleep(1)
+                if not FAST_MODE:
+                    time.sleep(0.3)
             except TimeoutException:
                 pass
 
             # Scroll to trigger offers
             driver.execute_script("window.scrollBy(0, 1200);")
-            time.sleep(2)
+            time.sleep(0.6 if FAST_MODE else 1.2)
 
             # Wait for offers section
             try:
-                WebDriverWait(driver, 10).until(
+                WebDriverWait(driver, 5 if FAST_MODE else 10).until(
                     EC.presence_of_element_located((By.XPATH, "//div[contains(text(),'Available offers')]"))
                 )
             except TimeoutException:
-                if attempt < max_retries - 1:
-                    continue
-                return []
+                # Fallback: try a smaller scroll and shorter wait once
+                try:
+                    driver.execute_script("window.scrollBy(0, 800);")
+                    WebDriverWait(driver, 3 if FAST_MODE else 6).until(
+                        EC.presence_of_element_located((By.XPATH, "//div[contains(text(),'Available offers')]"))
+                    )
+                except TimeoutException:
+                    if attempt < max_retries - 1:
+                        continue
+                    return []
 
             soup = BeautifulSoup(driver.page_source, 'html.parser')
             offers = []
@@ -1299,6 +1346,9 @@ def get_flipkart_offers(driver, url, max_retries=2):
             logging.info(f"Extracted {len(unique_offers)} unique offers from {url} (filtered out unwanted types)")
             return unique_offers
 
+        except (InvalidSessionIdException, WebDriverException) as e:
+            # propagate invalid session so worker recreates driver
+            raise
         except Exception as e:
             logging.error(f"Exception in get_flipkart_offers (attempt {attempt + 1}): {e}")
             if attempt < max_retries - 1:
@@ -1354,22 +1404,195 @@ def create_chrome_driver():
     options.add_argument('--disable-blink-features=AutomationControlled')
     options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36')
     
+    # Faster page load strategy (stop early after DOMContentLoaded)
+    try:
+        options.page_load_strategy = 'eager'
+    except Exception:
+        pass
+    
+    # Disable images/fonts/analytics to speed up
+    prefs = {
+        "profile.managed_default_content_settings.images": 2,
+        "profile.managed_default_content_settings.stylesheets": 1,
+        "profile.managed_default_content_settings.javascript": 1,
+        "profile.managed_default_content_settings.fonts": 2,
+        "profile.default_content_setting_values.plugins": 1,
+        "profile.default_content_setting_values.popups": 1,
+    }
+    try:
+        options.add_experimental_option('prefs', prefs)
+    except Exception:
+        pass
+    
     # Note: Avoid experimental options that may be rejected in newer Chrome/Selenium combos
     # (e.g., 'useAutomationExtension' and 'excludeSwitches')
     
     try:
         driver = uc.Chrome(options=options)
         # Set timeouts to prevent hanging
-        driver.set_page_load_timeout(30)
-        driver.implicitly_wait(10)
+        driver.set_page_load_timeout(20 if FAST_MODE else 30)
+        driver.implicitly_wait(2 if FAST_MODE else 6)
+        
+        # Use CDP to block heavy resource types when possible
+        try:
+            driver.execute_cdp_cmd('Network.enable', {})
+            # Block images, media, fonts, tracking
+            blocked_types = ['Image', 'Media', 'Font', 'TextTrack', 'EventSource', 'Fetch', 'Preflight']
+            driver.execute_cdp_cmd('Network.setBlockedURLS', { 'urls': ['*.png', '*.jpg', '*.jpeg', '*.gif', '*.webp', '*.svg', '*.mp4', '*.woff', '*.woff2', '*googletagmanager*', '*google-analytics*'] })
+            driver.execute_cdp_cmd('Network.setCacheDisabled', { 'cacheDisabled': False })
+        except Exception:
+            pass
         return driver
     except Exception as e:
         logging.error(f"Failed to create Chrome driver: {e}")
         raise
 
+def ensure_driver_alive(driver):
+    """Return a valid driver; recreate if session is invalid."""
+    try:
+        # Try a benign call to trigger session check
+        _ = driver.current_url  # may raise InvalidSessionIdException
+        return driver
+    except (InvalidSessionIdException, WebDriverException):
+        try:
+            try:
+                driver.quit()
+            except Exception:
+                pass
+            return create_chrome_driver()
+        except Exception as e:
+            logging.error(f"Failed to recreate Chrome driver: {e}")
+            raise
+
+def _process_single_flipkart_link(link_data: Dict[str, Any], analyzer: 'FlipkartOfferAnalyzer', visited_urls_file: str, driver) -> Dict[str, Any]:
+    """Process a single Flipkart store link end-to-end using a provided driver. Returns stats dict."""
+    stats = {
+        'url': link_data.get('url'),
+        'ranked_offers_count': 0,
+        'had_offers': False,
+        'error': None
+    }
+    try:
+        # Small random jitter to avoid synchronized bursts
+        time.sleep(random.uniform(0.2, 0.8))
+        print(f"\n🔍 [T] Processing URL: {link_data['url']}")
+    # Driver validity handled by worker
+        store_link_ref = link_data['store_link_ref']
+        existing_offers = 'ranked_offers' in store_link_ref and store_link_ref['ranked_offers']
+        if existing_offers:
+            print(f"   🔄 [T] Has existing offers, re-scraping")
+        else:
+            print(f"   🆕 [T] New link")
+
+        offers = get_flipkart_offers(driver, link_data['url'])
+        offers_found = bool(offers and len(offers) > 0)
+        stats['had_offers'] = offers_found
+
+        price_stock_info = extract_flipkart_price_and_stock(driver, link_data['url'], offers_found=offers_found)
+
+        # Retry if stock undetermined
+        retry_count = 0
+        max_retries_for_undetermined = 2
+        while price_stock_info['in_stock'] is None and retry_count < max_retries_for_undetermined:
+            retry_count += 1
+            time.sleep(1.2 if FAST_MODE else 3)
+            offers = get_flipkart_offers(driver, link_data['url'])
+            offers_found = bool(offers and len(offers) > 0)
+            price_stock_info = extract_flipkart_price_and_stock(driver, link_data['url'], offers_found=offers_found)
+
+        # Update price
+        if price_stock_info.get('price'):
+            store_link_ref['price'] = price_stock_info['price']
+
+        # Update stock
+        store_link_ref['in_stock'] = price_stock_info.get('in_stock')
+
+        # platform_url
+        try:
+            store_link_ref['platform_url'] = driver.current_url
+        except Exception:
+            store_link_ref['platform_url'] = link_data['url']
+
+        # exchange price
+        if price_stock_info.get('with_exchange_price'):
+            store_link_ref['with_exchange_price'] = price_stock_info['with_exchange_price']
+
+        # product name
+        if price_stock_info.get('product_name_via_url'):
+            store_link_ref['product_name_via_url'] = price_stock_info['product_name_via_url']
+
+        if offers:
+            price_str = store_link_ref.get('price', '₹0')
+            product_price = extract_price_amount(price_str)
+            ranked_offers = analyzer.rank_offers(offers, product_price)
+            store_link_ref['ranked_offers'] = ranked_offers
+            stats['ranked_offers_count'] = len(ranked_offers)
+        else:
+            store_link_ref['ranked_offers'] = []
+
+        append_visited_url(link_data['url'], visited_urls_file)
+
+        return stats
+    except Exception as e:
+        stats['error'] = str(e)
+        logging.error(f"Error processing single Flipkart link {link_data.get('url')}: {e}")
+        return stats
+
+def driver_worker(driver, task_queue: Queue, analyzer: 'FlipkartOfferAnalyzer', visited_urls_file: str, results: list, data_ref: Any, output_file: str):
+    """Worker loop: consumes tasks and processes them with a shared driver."""
+    while True:
+        link_data = task_queue.get()
+        if link_data is None:
+            task_queue.task_done()
+            break
+        try:
+            # Try up to 2 session recoveries for this task
+            attempts = 0
+            while True:
+                try:
+                    driver = ensure_driver_alive(driver)
+                    stat = _process_single_flipkart_link(link_data, analyzer, visited_urls_file, driver)
+                    results.append(stat)
+                    break
+                except (InvalidSessionIdException, WebDriverException) as e:
+                    attempts += 1
+                    logging.warning(f"Invalid driver session, recreating (attempt {attempts}) for URL: {link_data.get('url')}")
+                    try:
+                        try:
+                            driver.quit()
+                        except Exception:
+                            pass
+                        time.sleep(min(2 * attempts, 5))
+                        driver = create_chrome_driver()
+                    except Exception as ce:
+                        logging.error(f"Driver recreation failed: {ce}")
+                        if attempts >= 2:
+                            raise
+                        continue
+            # Update API status
+            try:
+                with STATUS_LOCK:
+                    scraping_status['progress'] = len(results)
+                    scraping_status['current_url'] = stat.get('url', '')
+            except Exception:
+                pass
+            # Periodic snapshot every 25 processed
+            if len(results) % 25 == 0:
+                temp_backup = f"{output_file}.progress_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+                with FILE_SAVE_LOCK:
+                    with open(temp_backup, 'w', encoding='utf-8') as f:
+                        json.dump(data_ref, f, indent=2, ensure_ascii=False)
+                print(f"   💾 Parallel progress saved to {temp_backup}")
+        except Exception as e:
+            logging.error(f"Worker error: {e}")
+        finally:
+            task_queue.task_done()
+
+
 def process_comprehensive_flipkart_links(input_file="comprehensive_amazon_offers.json", 
                                        output_file="comprehensive_amazon_offers.json",
-                                       flipkart_urls_file="visited_urls_flipkart.txt"):
+                                       flipkart_urls_file="visited_urls_flipkart.txt",
+                                       max_workers: Optional[int] = None):
     """
     Process ALL Flipkart store links in the comprehensive JSON file
     - Completely isolates Amazon and Croma offers (no changes)
@@ -1437,6 +1660,14 @@ def process_comprehensive_flipkart_links(input_file="comprehensive_amazon_offers
     if not flipkart_links:
         print("✅ No Flipkart links found in the JSON data")
         return
+    # Initialize API progress totals (best-effort)
+    try:
+        with STATUS_LOCK:
+            scraping_status['total'] = len(flipkart_links)
+            scraping_status['progress'] = 0
+            scraping_status['current_url'] = ''
+    except Exception:
+        pass
     
     # Initialize resource management
     print(f"🔧 Initializing resource management...")
@@ -1448,145 +1679,63 @@ def process_comprehensive_flipkart_links(input_file="comprehensive_amazon_offers
     
     processed_count = 0
     new_offers_count = 0
-    
+
+    # Determine concurrency level (driver pool size)
+    if max_workers is None:
+        try:
+            max_workers = min(8, multiprocessing.cpu_count() * 2)
+        except Exception:
+            max_workers = 6
+    max_workers = max(1, int(max_workers))
+    print(f"⚡ Driver pool size: {max_workers}")
+
     try:
-        for idx, link_data in enumerate(flipkart_links):
-            print(f"\n🔍 Processing {idx + 1}/{len(flipkart_links)}")
-            print(f"   Path: {link_data['path']}")
-            print(f"   URL: {link_data['url']}")
-            print(f"   🔧 Session: Fresh session with resource management")
-            
-            # Use context manager for proper resource cleanup
-            with chrome_driver_context() as driver:
-                # Process ALL Flipkart links (re-scrape even if offers exist)
-                store_link_ref = link_data['store_link_ref']
-                existing_offers = 'ranked_offers' in store_link_ref and store_link_ref['ranked_offers']
-                if existing_offers:
-                    print(f"   🔄 Link has existing offers, re-scraping anyway")
-                else:
-                    print(f"   🆕 Processing new link")
-                
-                # Get Flipkart offers first to determine if offers exist
-                offers = get_flipkart_offers(driver, link_data['url'])
-                offers_found = bool(offers and len(offers) > 0)
-                
-                # Extract price and stock status information WITH offers context
-                price_stock_info = extract_flipkart_price_and_stock(driver, link_data['url'], offers_found=offers_found)
-                
-                # RETRY MECHANISM FOR UNDETERMINED STOCK STATUS
-                retry_count = 0
-                max_retries_for_undetermined = 2
-                
-                while price_stock_info['in_stock'] is None and retry_count < max_retries_for_undetermined:
-                    retry_count += 1
-                    print(f"   🔄 Stock status UNDETERMINED - Retry attempt {retry_count}/{max_retries_for_undetermined}")
-                    logging.info(f"Retrying stock status determination for {link_data['url']} - Attempt {retry_count}/{max_retries_for_undetermined}")
-                    
-                    # Wait 3 seconds before retry
-                    time.sleep(3)
-                    
-                    # Retry scraping offers
-                    print(f"   🔍 Re-scraping offers...")
-                    offers = get_flipkart_offers(driver, link_data['url'])
-                    offers_found = bool(offers and len(offers) > 0)
-                    
-                    # Re-extract price and stock status
-                    print(f"   📦 Re-checking stock status...")
-                    price_stock_info = extract_flipkart_price_and_stock(driver, link_data['url'], offers_found=offers_found)
-                    
-                    if price_stock_info['in_stock'] is not None:
-                        print(f"   ✅ Stock status determined after retry {retry_count}: {'In Stock' if price_stock_info['in_stock'] else 'Sold Out'}")
-                        break
-                    else:
-                        print(f"   ⚠️  Stock status still undetermined after retry {retry_count}")
-                        if retry_count < max_retries_for_undetermined:
-                            print(f"   ⏳ Will retry again in 3 seconds...")
-                
-                if retry_count > 0:
-                    if price_stock_info['in_stock'] is not None:
-                        print(f"   🎯 Final result after {retry_count} retries: Stock status determined")
-                    else:
-                        print(f"   ❌ Final result after {retry_count} retries: Stock status remains undetermined")
-                
-                # Update price if found, otherwise keep existing price
-                if price_stock_info['price']:
-                    store_link_ref['price'] = price_stock_info['price']
-                    print(f"   💰 Updated price: {price_stock_info['price']}")
-                else:
-                    print(f"   💰 Price not found on page, keeping existing: {store_link_ref.get('price')}")
-                
-                # Add in_stock key just below price key
-                store_link_ref['in_stock'] = price_stock_info['in_stock']
-                status_text = 'In Stock' if price_stock_info['in_stock'] is True else ('Sold Out' if price_stock_info['in_stock'] is False else 'Undetermined')
-                print(f"   📦 Final stock status: {status_text}")
+        # Task queue and results list
+        task_queue: Queue = Queue()
+        results: list = []
 
-                # Add platform_url (actual visited URL after any redirects)
-                try:
-                    platform_url = driver.current_url
-                    store_link_ref['platform_url'] = platform_url
-                    print(f"   🌐 Platform URL set: {platform_url}")
-                except Exception:
-                    store_link_ref['platform_url'] = link_data['url']
-                    print(f"   🌐 Platform URL fallback to provided URL")
+        # Prime drivers
+        print("🚗 Creating Chrome driver pool...")
+        drivers = []
+        for i in range(max_workers):
+            try:
+                drivers.append(create_chrome_driver())
+            except Exception as e:
+                logging.error(f"Failed to create driver {i}: {e}")
+        if not drivers:
+            raise RuntimeError("No Chrome drivers could be created")
 
-                # Add with_exchange_price if computed
-                if price_stock_info.get('with_exchange_price'):
-                    store_link_ref['with_exchange_price'] = price_stock_info['with_exchange_price']
-                    print(f"   🔁 With Exchange Price: {price_stock_info['with_exchange_price']}")
-                else:
-                    print(f"   🔁 No exchange price found")
-                
-                # Add product_name_via_url if extracted
-                if price_stock_info.get('product_name_via_url'):
-                    store_link_ref['product_name_via_url'] = price_stock_info['product_name_via_url']
-                    print(f"   📱 Product name via URL: {price_stock_info['product_name_via_url']}")
-                else:
-                    print(f"   📱 No product name extracted from URL")
-                
-                if offers:
-                    # Get product price for ranking
-                    price_str = store_link_ref.get('price', '₹0')
-                    product_price = extract_price_amount(price_str)
-                    
-                    # Rank the offers
-                    ranked_offers = analyzer.rank_offers(offers, product_price)
-                    
-                    # CRITICAL: Update ONLY the Flipkart store link (no other changes)
-                    store_link_ref['ranked_offers'] = ranked_offers
-                    
-                    processed_count += 1
-                    new_offers_count += len(ranked_offers)
-                    
-                    print(f"   ✅ Added {len(ranked_offers)} ranked offers")
-                    
-                    # Log top offers
-                    for i, offer in enumerate(ranked_offers[:2], 1):
-                        score_display = offer['score'] if offer['score'] is not None else 'N/A'
-                        print(f"      Rank {i}: {offer['title']} (Score: {score_display}, Amount: ₹{offer['amount']})")
-                else:
-                    print(f"   ❌ No offers found")
-                    store_link_ref['ranked_offers'] = []
-                    processed_count += 1
-                
-                # Always add URL to visited list after processing (even if re-processed)
-                append_visited_url(link_data['url'], visited_urls_file)
-                print(f"   📝 Added URL to visited_urls_flipkart.txt")
-            
-            # Context manager automatically cleans up driver here
-            
-            # Log resource usage every 5 entries
-            if (idx + 1) % 5 == 0:
-                log_resource_usage(f"After processing {idx + 1} links - ")
-            
-            # Save progress every 10 entries
-            if (idx + 1) % 10 == 0:
-                temp_backup = f"{output_file}.progress_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-                with open(temp_backup, 'w', encoding='utf-8') as f:
-                    json.dump(data, f, indent=2, ensure_ascii=False)
-                print(f"   💾 Progress saved to {temp_backup}")
-            
-            # Small delay between requests
-            time.sleep(2)
+        # Start worker threads
+        threads = []
+        for drv in drivers:
+            t = threading.Thread(target=driver_worker, args=(drv, task_queue, analyzer, visited_urls_file, results, data, output_file), daemon=True)
+            t.start()
+            threads.append(t)
+
+        # Enqueue tasks
+        for link_data in flipkart_links:
+            task_queue.put(link_data)
+
+        # Wait for completion
+        task_queue.join()
+
+        # Stop workers
+        for _ in drivers:
+            task_queue.put(None)
+        for t in threads:
+            t.join(timeout=5)
+
+        # Count results
+        processed_count = len(results)
+        new_offers_count = sum(int(r.get('ranked_offers_count', 0) or 0) for r in results)
+
+        # Cleanup drivers
+        print("🧹 Cleaning up driver pool...")
+        for drv in drivers:
+            try:
+                drv.quit()
+            except Exception:
+                pass
     
     except KeyboardInterrupt:
         print("\n⚠️  Interrupted! Saving progress...")
@@ -1638,7 +1787,7 @@ scraping_status = {
     'output_file': None
 }
 
-def run_flipkart_scraper_process(input_file="all_data.json", output_file=None, flipkart_urls_file="visited_urls_flipkart.txt"):
+def run_flipkart_scraper_process(input_file="all_data.json", output_file=None, flipkart_urls_file="visited_urls_flipkart.txt", max_workers: Optional[int] = None):
     """
     Function to run the Flipkart scraper process in a separate thread
     """
@@ -1666,7 +1815,7 @@ def run_flipkart_scraper_process(input_file="all_data.json", output_file=None, f
         logging.info(f"API triggered Flipkart scraper process started with output file: {output_file}")
         
         # Run the main scraping function
-        process_comprehensive_flipkart_links(input_file, output_file, flipkart_urls_file)
+        process_comprehensive_flipkart_links(input_file, output_file, flipkart_urls_file, max_workers=max_workers)
         
         # Mark as completed
         scraping_status.update({
@@ -1714,11 +1863,17 @@ def start_scraping():
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
             output_file = f"all_data_flipkart_{timestamp}.json"
         flipkart_urls_file = data.get('flipkart_urls_file', 'visited_urls_flipkart.txt')
+        max_workers = data.get('max_workers', None)
+        if isinstance(max_workers, str):
+            try:
+                max_workers = int(max_workers)
+            except ValueError:
+                max_workers = None
         
         # Start scraping in a separate thread
         scraper_thread = threading.Thread(
             target=run_flipkart_scraper_process,
-            args=(input_file, output_file, flipkart_urls_file),
+            args=(input_file, output_file, flipkart_urls_file, max_workers),
             daemon=True
         )
         scraper_thread.start()
@@ -1730,6 +1885,7 @@ def start_scraping():
                 'input_file': input_file,
                 'output_file': output_file,
                 'flipkart_urls_file': flipkart_urls_file,
+                'max_workers': max_workers,
                 'started_at': scraping_status['start_time']                             
             }
         }), 200
