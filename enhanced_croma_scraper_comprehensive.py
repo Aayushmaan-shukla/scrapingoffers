@@ -821,8 +821,9 @@ def create_chrome_driver():
     
     # Anti-detection for Google Chrome 139.0.7258.66
     options.add_argument('--disable-blink-features=AutomationControlled')
-    options.add_experimental_option("excludeSwitches", ["enable-automation"])
-    options.add_experimental_option('useAutomationExtension', False)
+
+    # Remove deprecated/unsupported experimental options that cause failures on newer Chrome
+    # (e.g., excludeSwitches, useAutomationExtension)
     
     # Updated user agent for Google Chrome 139.0.7258.66 compatibility
     options.add_argument('--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.7258.66 Safari/537.36')
