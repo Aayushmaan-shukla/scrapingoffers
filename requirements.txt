@@ -3,3 +3,4 @@ undetected-chromedriver
 selenium
 flask
 requests
+google-generativeai
