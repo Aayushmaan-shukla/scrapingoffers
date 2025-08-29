@@ -2,6 +2,7 @@ import os
 import re
 import json
 import time
+import glob
 from bs4 import BeautifulSoup
 import undetected_chromedriver as uc
 import logging
@@ -16,7 +17,121 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, ElementClickInterceptedException
 import requests
 import random
-import resource
+# Conditional import for resource module (Unix/Linux only)#################################################################################
+try:
+    import resource
+    RESOURCE_AVAILABLE = True
+except ImportError:
+    RESOURCE_AVAILABLE = False
+import google.generativeai as genai
+
+# ===============================================
+# GOOGLE GEMINI API CONFIGURATION
+# ===============================================
+
+# Google Gemini API keys for analyzing descriptions
+GEMINI_API_KEYS = [
+    "AIzaSyA0mSe8Ty4dBlkh7cur7aHFtPA2uiqziN8",
+    "AIzaSyChteT1w_MNjG49MQ8h09LtQF7oumQcRpQ",
+    "AIzaSyD1r6qFYp8yywv6BLF_xzf8KFGEC6yoCZg"
+]
+
+# Initialize Gemini API
+def initialize_gemini_api():
+    """Initialize Gemini API with available keys."""
+    for api_key in GEMINI_API_KEYS:
+        try:
+            genai.configure(api_key=api_key)
+            # Test the API with a simple request
+            model = genai.GenerativeModel('gemini-2.0-flash')
+            response = model.generate_content("Hello")
+            if response:
+                logging.info(f"✅ Gemini API initialized successfully with key: {api_key[:20]}...")
+                return True
+        except Exception as e:
+            logging.warning(f"⚠️ Failed to initialize Gemini API with key {api_key[:20]}...: {e}")
+            continue
+    
+    logging.error("❌ All Gemini API keys failed to initialize")
+    return False
+
+def analyze_description_with_gemini(description: str, field_type: str) -> Optional[str]:
+    """
+    Use Google Gemini API to analyze description and extract missing bank or card_type information.
+    
+    Args:
+        description: The offer description to analyze
+        field_type: Either 'bank' or 'card_type'
+    
+    Returns:
+        Extracted bank name or card type, or None if extraction failed
+    """
+    try:
+        if not description or len(description.strip()) < 10:
+            return None
+        
+        # Initialize Gemini API
+        if not initialize_gemini_api():
+            return None
+        
+        model = genai.GenerativeModel('gemini-2.0-flash')
+        
+        if field_type == 'bank':
+            prompt = f"""
+            Analyze this offer description and extract ONLY the bank name. 
+            Return ONLY the bank name, no extra words, no explanations.
+            If no bank or payment method is mentioned, return null.
+            
+            Description: {description}
+            
+            Bank name:"""
+        elif field_type == 'card_type':
+            prompt = f"""
+            Analyze this offer description and extract ONLY the card type.
+            Return ONLY: "Credit Card", "Debit Card", "Credit/Debit Card", or null if unclear.
+            No extra words, no explanations.
+            
+            Description: {description}
+            
+            Card type:"""
+        else:
+            return None
+        
+        response = model.generate_content(prompt)
+        if response and response.text:
+            result = response.text.strip()
+            
+            # Clean up the response
+            if result.lower() in ['null', 'none', 'n/a', 'not mentioned', 'unclear']:
+                return None
+            
+            # For card_type, normalize the response
+            if field_type == 'card_type':
+                result_lower = result.lower()
+                if 'credit' in result_lower and 'debit' in result_lower:
+                    return "Credit/Debit Card"
+                elif 'credit' in result_lower:
+                    return "Credit Card"
+                elif 'debit' in result_lower:
+                    return "Debit Card"
+                else:
+                    return None
+            
+            # For bank, ensure it ends with "Bank" if it's a bank name
+            if field_type == 'bank' and result and not result.endswith('Bank'):
+                # Check if it's a known bank that should end with "Bank"
+                known_banks = ['HDFC', 'ICICI', 'Axis', 'Kotak', 'IndusInd', 'Yes', 'IDFC', 'Federal', 'RBL', 'DCB', 'AU', 'Equitas', 'Ujjivan']
+                if any(bank.lower() in result.lower() for bank in known_banks):
+                    result += " Bank"
+            
+            logging.info(f"✅ Gemini API extracted {field_type}: '{result}' from description")
+            return result
+        
+        return None
+        
+    except Exception as e:
+        logging.error(f"❌ Error using Gemini API for {field_type} extraction: {e}")
+        return None
 
 # ===============================================
 # ENHANCED AMAZON SCRAPER WITH PROXY ROTATION
@@ -206,6 +321,14 @@ DATA_CONSISTENCY_CONFIG = {
     ]
 }
 
+# Configuration for CAPTCHA handling
+CAPTCHA_CONFIG = {
+    'enabled': True,  # Set to False to disable CAPTCHA handling
+    'auto_click_continue_shopping': True,  # Automatically click "Continue shopping" button
+    'wait_after_captcha_click': 5,  # Seconds to wait after clicking CAPTCHA button
+    'additional_wait_after_captcha': 2,  # Additional seconds to wait for page stabilization
+}
+
 # ===============================================
 # RESOURCE MANAGEMENT FOR "TOO MANY OPEN FILES"
 # ===============================================
@@ -215,19 +338,22 @@ def manage_file_descriptors():
     Manage file descriptors to prevent "Too many open files" errors.
     This is especially important for long-running scraping sessions.
     """
-    try:
-        # Get current limits
-        soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
-        print(f"📁 Current file descriptor limits - Soft: {soft}, Hard: {hard}")
-        
-        # Try to increase soft limit to hard limit
+    if RESOURCE_AVAILABLE:
         try:
-            resource.setrlimit(resource.RLIMIT_NOFILE, (hard, hard))
-            print(f"✅ Increased file descriptor limit to {hard}")
-        except ValueError:
-            print(f"⚠️ Could not increase file descriptor limit (requires root privileges)")
+            # Get current limits
+            soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+            print(f"📁 Current file descriptor limits - Soft: {soft}, Hard: {hard}")
             
-    except ImportError:
+            # Try to increase soft limit to hard limit
+            try:
+                resource.setrlimit(resource.RLIMIT_NOFILE, (hard, hard))
+                print(f"✅ Increased file descriptor limit to {hard}")
+            except ValueError:
+                print(f"⚠️ Could not increase file descriptor limit (requires root privileges)")
+                
+        except Exception as e:
+            print(f"⚠️ Error managing file descriptors: {e}")
+    else:
         print("⚠️ Resource module not available (Windows system)")
         # On Windows, we'll rely on proxy rotation and session management
         print("   💡 Using proxy rotation and session management for resource control")
@@ -488,6 +614,13 @@ def extract_price_and_availability(driver, url):
         # Load the page
         driver.get(url)
         time.sleep(3)  # Wait for page to load
+        
+        # Check for CAPTCHA page and handle it if present
+        captcha_handled = check_and_handle_captcha(driver, url)
+        if captcha_handled:
+            # If CAPTCHA was handled, we need to get fresh page source
+            time.sleep(CAPTCHA_CONFIG['additional_wait_after_captcha'])  # Additional wait for page to stabilize
+            logging.info(f"CAPTCHA handled for {url}, proceeding with extraction...")
         
         # Get page soup for element checking
         soup = BeautifulSoup(driver.page_source, 'html.parser')
@@ -1060,6 +1193,25 @@ class OfferAnalyzer:
         if card_type and card_type.strip().lower() in { 'both', 'credit & debit', 'credit and debit', 'credit/debit', 'credit or debit' }:
             card_type = "Credit/Debit Card"
         card_provider = self.extract_card_provider(description)
+        
+        # Use Gemini API to fill missing bank or card_type information
+        if not bank and description:
+            print(f"   🤖 Bank is null, using Gemini API to analyze description...")
+            gemini_bank = analyze_description_with_gemini(description, 'bank')
+            if gemini_bank:
+                bank = gemini_bank
+                print(f"   ✅ Gemini API extracted bank: {bank}")
+            else:
+                print(f"   ❌ Gemini API could not extract bank information")
+        
+        if not card_type and description:
+            print(f"   🤖 Card type is null, using Gemini API to analyze description...")
+            gemini_card_type = analyze_description_with_gemini(description, 'card_type')
+            if gemini_card_type:
+                card_type = gemini_card_type
+                print(f"   ✅ Gemini API extracted card type: {card_type}")
+            else:
+                print(f"   ❌ Gemini API could not extract card type information")
         
         # Determine if it's an instant discount
         is_instant = 'instant' in description.lower() or 'cashback' not in description.lower()
@@ -1931,10 +2083,11 @@ def process_comprehensive_amazon_store_links(input_file, output_file, start_idx=
        - Actual price if available (from span class="a-price-whole")
        - "Currently unavailable" if span class="a-size-medium a-color-success" contains unavailable message
     4. Maintains existing bank offers scraping functionality
-    5. Appends processed URLs to visited_urls.txt to avoid re-processing
+    5. Skips URLs already in visited_urls.txt to preserve existing offers
     6. BROWSER SESSION MANAGEMENT: Creates fresh Chrome session for each link
     7. OFFER FILTERING: Automatically removes Cashback, No Cost EMI, and Partner Offers
        - Only Bank Offers and other allowed offer types are saved to the final output
+    8. GEMINI AI INTEGRATION: Uses Google Gemini API to analyze descriptions when bank or card_type is null
     """
     
     # Load the JSON data
@@ -2138,6 +2291,14 @@ def process_comprehensive_amazon_store_links(input_file, output_file, start_idx=
                         else:
                             filtered_offers.append(offer)
                     
+                    # Initialize Gemini API after filtering offers
+                    if filtered_offers:
+                        print(f"   🤖 Initializing Gemini API for AI analysis of {len(filtered_offers)} filtered offers...")
+                        if initialize_gemini_api():
+                            print(f"   ✅ Gemini API initialized successfully")
+                        else:
+                            print(f"   ⚠️  Gemini API initialization failed, continuing without AI analysis")
+                    
                     # Update the store_link with filtered offers (only Bank Offers and other allowed types)
                     store_link['ranked_offers'] = filtered_offers
                     
@@ -2165,11 +2326,31 @@ def process_comprehensive_amazon_store_links(input_file, output_file, start_idx=
                 
                 # Save progress every 100 entries (optimized backup frequency)
                 if (idx + 1) % 100 == 0:
+                    # Create new backup file
                     backup_file = f"{output_file}.backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
                     ensure_parent_dir(backup_file)
                     with open(backup_file, 'w', encoding='utf-8') as f:
                         json.dump(data, f, indent=2, ensure_ascii=False)
                     print(f"   💾 Progress saved to {backup_file} (every 100 URLs)")
+                    
+                    # Delete previous backup file to save storage
+                    try:
+                        # Find all backup files for this output file
+                        backup_dir = os.path.dirname(output_file)
+                        backup_base = os.path.basename(output_file)
+                        backup_pattern = f"{backup_base}.backup_*.json"
+                        backup_files = glob.glob(os.path.join(backup_dir, backup_pattern))
+                        
+                        # Sort by creation time and keep only the current one
+                        if len(backup_files) > 1:
+                            backup_files.sort(key=lambda x: os.path.getctime(x), reverse=True)
+                            # Delete all but the most recent backup file
+                            for old_backup in backup_files[1:]:
+                                os.remove(old_backup)
+                                print(f"   🗑️  Deleted old backup: {os.path.basename(old_backup)}")
+                    except Exception as e:
+                        logging.warning(f"Could not delete old backup files: {e}")
+                        print(f"   ⚠️  Could not delete old backup files: {e}")
                     
                     # Clean up resources every 100 URLs to prevent memory leaks
                     cleanup_resources()
@@ -2323,6 +2504,14 @@ def process_comprehensive_amazon_store_links(input_file, output_file, start_idx=
                                             logging.info(f"Removing offer type '{offer_type}' for {amazon_url}")
                                         else:
                                             filtered_offers.append(offer)
+                                    
+                                    # Initialize Gemini API after filtering offers
+                                    if filtered_offers:
+                                        print(f"   🤖 Initializing Gemini API for AI analysis of {len(filtered_offers)} filtered offers...")
+                                        if initialize_gemini_api():
+                                            print(f"   ✅ Gemini API initialized successfully")
+                                        else:
+                                            print(f"   ⚠️  Gemini API initialization failed, continuing without AI analysis")
                                     
                                     store_link['ranked_offers'] = filtered_offers
                                     
@@ -2618,6 +2807,62 @@ def api_info():
         ]
     }), 200
 
+def check_and_handle_captcha(driver, url):
+    """
+    Check if the current page is a CAPTCHA page and handle it by clicking the "Continue shopping" button.
+    
+    Args:
+        driver: Selenium WebDriver instance
+        url: The URL being processed
+        
+    Returns:
+        bool: True if CAPTCHA was detected and handled, False otherwise
+    """
+    # Check if CAPTCHA handling is enabled
+    if not CAPTCHA_CONFIG['enabled']:
+        return False
+        
+    try:
+        # Check if this is a CAPTCHA page by looking for the "Continue shopping" button
+        captcha_button = driver.find_element(By.XPATH, "//button[@type='submit' and @class='a-button-text' and @alt='Continue shopping']")
+        
+        if captcha_button and CAPTCHA_CONFIG['auto_click_continue_shopping']:
+            logging.info(f"CAPTCHA page detected for {url}, attempting to handle...")
+            print(f"   🚨 CAPTCHA page detected, clicking 'Continue shopping' button...")
+            
+
+            
+            # Click the "Continue shopping" button
+            captcha_button.click()
+            
+            # Wait for the page to load after clicking
+            time.sleep(CAPTCHA_CONFIG['wait_after_captcha_click'])
+            
+            # Check if we're still on a CAPTCHA page or if we've been redirected
+            try:
+                # Try to find the button again to see if we're still on CAPTCHA page
+                driver.find_element(By.XPATH, "//button[@type='submit' and @class='a-button-text' and @alt='Continue shopping']")
+                logging.warning(f"Still on CAPTCHA page after clicking button for {url}")
+                print(f"   ⚠️  Still on CAPTCHA page, may need manual intervention")
+                return False
+            except:
+                # Button not found, we've likely been redirected to the actual product page
+                logging.info(f"Successfully handled CAPTCHA for {url}, redirected to product page")
+                print(f"   ✅ CAPTCHA handled successfully, proceeding with scraping...")
+                
+
+                
+                # Wait a bit more for the page to fully load
+                time.sleep(CAPTCHA_CONFIG['additional_wait_after_captcha'])
+                
+                return True
+                
+    except Exception as e:
+        # No CAPTCHA button found, this is a normal page
+        return False
+    
+
+
 if __name__ == "__main__":
     import sys
     
@@ -2663,9 +2908,10 @@ if __name__ == "__main__":
         print("This script finds ALL Amazon store links in deep nested JSON and adds:")
         print("  🎯 Product prices and availability status")
         print("  🏆 Ranked bank offers") 
-        print("  📝 URL visit tracking (visited_urls.txt)")
+        print("  📝 URL visit tracking (visited_urls.txt) - preserves existing offers")
         print("  🔄 Smart session management (fresh session for each link)")
-        print("🎯 FEATURES: Price extraction + Availability checking + Bank offers + URL tracking + Per-link session refresh")
+        print("  🤖 Gemini AI integration for missing bank/card_type data")
+        print("🎯 FEATURES: Price extraction + Availability checking + Bank offers + URL tracking + Per-link session refresh + AI analysis")
         print("🤖 DEFAULT MODE: Headless browser, processes all URLs, backups every 100 URLs")
         print()
         print("💡 TIP: Run with --api flag to start as API server instead:")
@@ -2684,6 +2930,8 @@ if __name__ == "__main__":
         print(f"   🤖 Browser mode: Headless (server mode)")
         print(f"   🔄 Session management: Fresh session for each link")
         print(f"   💾 Backup frequency: Every 100 processed URLs")
+        print(f"   🔄 URL handling: Skip already visited URLs to preserve offers")
+        print(f"   🤖 AI integration: Gemini API for missing bank/card_type data")
         print()
         
         process_comprehensive_amazon_store_links(input_file, output_file, start_idx, max_entries) 

@@ -1,0 +1,38 @@
+FROM python:3.9-alpine
+
+# Set the working directory to match the server location
+WORKDIR /root/scraping/dockertest/scrapingoffers
+
+# Set environment variable for the data directory
+ENV SCRAPED_OFFER_DATA_DIR=/root/scraping/dockertest/scrapingoffers/data
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    wget gnupg ca-certificates unzip \
+    libnss3 libxss1 libasound2 \
+    libatk-bridge2.0-0 libgtk-3-0 libgbm1 libx11-xcb1 libxcomposite1 \
+    libxcursor1 libxdamage1 libxi6 libxtst6 libxrandr2 libxrender1 \
+    libdrm2 xdg-utils fonts-liberation && \
+    rm -rf /var/lib/apt/lists/* && \
+    wget -qO- https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor > /usr/share/keyrings/google.gpg && \
+    echo "deb [signed-by=/usr/share/keyrings/google.gpg arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list && \
+    apt-get update && apt-get install -y --no-install-recommends google-chrome-stable && \
+    rm -rf /var/lib/apt/lists/*
+
+ENV CHROME_BIN=/usr/bin/google-chrome
+
+COPY requirements.txt . 
+
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY enhanced_amazon_scraper.py .
+
+COPY all_data.json .
+
+# Create directories with proper permissions matching the server structure
+RUN mkdir -p /root/scraping/dockertest/scrapingoffers/data /root/scraping/dockertest/scrapingoffers/logs && \
+    chmod 777 /root/scraping/dockertest/scrapingoffers/data /root/scraping/dockertest/scrapingoffers/logs
+
+# Set the working directory back to the project root for execution
+WORKDIR /root/scraping/dockertest/scrapingoffers
+
+CMD ["python3", "enhanced_amazon_scraper.py"]
