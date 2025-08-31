@@ -1,9 +1,8 @@
-
 """
 Enhanced Comprehensive Flipkart Scraper for comprehensive_amazon_offers.json
 - Traverses ALL nested locations (variants, all_matching_products, unmapped)
 - Uses correct input file (comprehensive_amazon_offers.json)
-- Processes ALL URLs (re-scrapes everything including existing data)
+- Smart processing: Skips URLs with existing offers to preserve data, processes new/empty ones
 - Completely isolates Amazon and Croma offers from any changes
 - Focuses ONLY on Flipkart links
 
@@ -21,6 +20,7 @@ import re
 import json
 import time
 import gc
+import glob
 from contextlib import contextmanager
 
 # Platform-specific imports
@@ -1371,9 +1371,9 @@ def process_comprehensive_flipkart_links(input_file="comprehensive_amazon_offers
                                        output_file="comprehensive_amazon_offers.json",
                                        flipkart_urls_file="visited_urls_flipkart.txt"):
     """
-    Process ALL Flipkart store links in the comprehensive JSON file
+    Process Flipkart store links in the comprehensive JSON file with smart processing
     - Completely isolates Amazon and Croma offers (no changes)
-    - Processes ALL Flipkart links (including those with existing offers - re-scrapes everything)
+    - Smart processing: Skips URLs with existing offers to preserve data, processes new/empty ones
     - Traverses ALL nested locations comprehensively
     - Runs in fully automated mode (headless, no user interaction)
     
@@ -1390,14 +1390,29 @@ def process_comprehensive_flipkart_links(input_file="comprehensive_amazon_offers
     
     AUTOMATION FEATURES:
     - Headless server mode by default
-    - Processes all URLs from beginning to end
+    - Smart URL processing: Skips URLs with existing offers, processes new/empty ones
     - No user prompts or interaction required
-    - Automatic URL tracking and complete processing
+    - Automatic URL tracking and smart processing
     - Smart session recycling for better stability
+    - Automatic backup file cleanup to preserve storage
     """
     
     # Create backup before processing
     backup_file = f"{input_file}.backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    
+    # Remove previous backup files to preserve storage
+    backup_dir = os.path.dirname(input_file) if os.path.dirname(input_file) else "."
+    backup_pattern = f"{os.path.splitext(os.path.basename(input_file))[0]}.backup_*.json"
+    old_backups = glob.glob(os.path.join(backup_dir, backup_pattern))
+    if old_backups:
+        print(f"🗑️  Removing {len(old_backups)} previous backup files to preserve storage...")
+        for old_backup in old_backups:
+            try:
+                os.remove(old_backup)
+                print(f"   🗑️  Removed: {os.path.basename(old_backup)}")
+            except Exception as e:
+                print(f"   ⚠️  Could not remove {os.path.basename(old_backup)}: {e}")
+    
     shutil.copy2(input_file, backup_file)
     print(f"💾 Created backup: {backup_file}")
     
@@ -1419,20 +1434,20 @@ def process_comprehensive_flipkart_links(input_file="comprehensive_amazon_offers
     print(f"🔍 Searching for Flipkart links in ALL nested locations...")
     flipkart_links = extractor.find_all_flipkart_store_links(data)
     
-    # Check visited URLs but don't filter - process ALL links
+    # Check visited URLs for smart processing
     original_count = len(flipkart_links)
     already_visited_count = len([link for link in flipkart_links if link['url'] in visited_urls])
     if already_visited_count > 0:
-        print(f"🔄 Found {already_visited_count} previously visited URLs (will re-process all)")
+        print(f"🔄 Found {already_visited_count} previously visited URLs (will skip those with existing offers)")
     
-    print(f"🚀 Processing ALL {len(flipkart_links)} Flipkart links (including those with existing offers/data)")
+    print(f"🚀 Smart processing of {len(flipkart_links)} Flipkart links (skips URLs with existing offers)")
     
-    print(f"📊 Total Flipkart store links found: {len(flipkart_links)} (will process ALL)")
+    print(f"📊 Total Flipkart store links found: {len(flipkart_links)} (smart processing enabled)")
     
-    # Auto-configuration: Process all links from beginning (no user interaction)
+    # Auto-configuration: Smart processing from beginning (no user interaction)
     start_idx = 0
     max_entries = None
-    print(f"🚀 Auto-configuration: Processing ALL {len(flipkart_links)} links from beginning to end")
+    print(f"🚀 Auto-configuration: Smart processing of {len(flipkart_links)} links from beginning to end")
     
     if not flipkart_links:
         print("✅ No Flipkart links found in the JSON data")
@@ -1454,17 +1469,29 @@ def process_comprehensive_flipkart_links(input_file="comprehensive_amazon_offers
             print(f"\n🔍 Processing {idx + 1}/{len(flipkart_links)}")
             print(f"   Path: {link_data['path']}")
             print(f"   URL: {link_data['url']}")
+            
+            # Check if URL is already visited and has existing offers - skip to preserve existing data
+            if link_data['url'] in visited_urls:
+                store_link_ref = link_data['store_link_ref']
+                existing_offers = 'ranked_offers' in store_link_ref and store_link_ref['ranked_offers']
+                if existing_offers:
+                    print(f"   ⏭️  URL already visited and has existing offers - skipping to preserve existing data")
+                    print(f"   📝 URL already in visited_urls_flipkart.txt")
+                    continue
+                else:
+                    print(f"   🔄 URL visited but no offers - will re-process to get offers")
+            
             print(f"   🔧 Session: Fresh session with resource management")
             
             # Use context manager for proper resource cleanup
             with chrome_driver_context() as driver:
-                # Process ALL Flipkart links (re-scrape even if offers exist)
+                # Process Flipkart links (skip if already visited with offers, otherwise process)
                 store_link_ref = link_data['store_link_ref']
                 existing_offers = 'ranked_offers' in store_link_ref and store_link_ref['ranked_offers']
                 if existing_offers:
-                    print(f"   🔄 Link has existing offers, re-scraping anyway")
+                    print(f"   🔄 Link has existing offers, processing to update price/stock info")
                 else:
-                    print(f"   🆕 Processing new link")
+                    print(f"   🆕 Processing new link or link without offers")
                 
                 # Get Flipkart offers first to determine if offers exist
                 offers = get_flipkart_offers(driver, link_data['url'])
@@ -1581,6 +1608,18 @@ def process_comprehensive_flipkart_links(input_file="comprehensive_amazon_offers
             # Save progress every 10 entries
             if (idx + 1) % 10 == 0:
                 temp_backup = f"{output_file}.progress_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+                
+                # Remove previous progress backup files to preserve storage
+                progress_backup_dir = os.path.dirname(output_file) if os.path.dirname(output_file) else "."
+                progress_backup_pattern = f"{os.path.splitext(os.path.basename(output_file))[0]}.progress_*.json"
+                old_progress_backups = glob.glob(os.path.join(progress_backup_dir, progress_backup_pattern))
+                if old_progress_backups:
+                    for old_progress_backup in old_progress_backups:
+                        try:
+                            os.remove(old_progress_backup)
+                        except Exception:
+                            pass  # Silently remove old progress backups
+                
                 with open(temp_backup, 'w', encoding='utf-8') as f:
                     json.dump(data, f, indent=2, ensure_ascii=False)
                 print(f"   💾 Progress saved to {temp_backup}")
@@ -1612,11 +1651,12 @@ def process_comprehensive_flipkart_links(input_file="comprehensive_amazon_offers
         print(f"      • True = Offers found + No Sold Out tag")  
         print(f"      • None = Undetermined status (after up to 2 retries with 3s delay)")
         print(f"   📝 URL tracking: Active (visited_urls_flipkart.txt updated)")
-        print(f"   🔄 Processing: ALL links processed (including re-scraping existing)")
+        print(f"   🔄 Processing: Smart processing - skips URLs with existing offers, processes new/empty ones")
         print(f"   🤖 Automation: Fully automated (headless mode)")
         print(f"   🔒 Amazon offers: COMPLETELY ISOLATED (no changes)")
         print(f"   🔒 Croma offers: COMPLETELY ISOLATED (no changes)")
         print(f"   ✅ Backup created: {backup_file}")
+        print(f"   🗑️  Storage management: Previous backup files automatically removed")
 
 # ===============================================
 # API SETUP AND ENDPOINTS FOR FLIPKART SCRAPER
