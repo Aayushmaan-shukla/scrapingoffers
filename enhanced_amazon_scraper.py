@@ -2621,7 +2621,7 @@ scraping_status = {
     'output_file': None
 }
 
-def run_scraper_process(input_file="all_data.json", output_file=None, start_idx=0, max_entries=None):
+def run_scraper_process(input_file="all_data_amazon_20250831_213339.json.backup_20250901_050407.json", output_file=None, start_idx=0, max_entries=None):
     """
     Function to run the scraper process in a separate thread
     """
@@ -2693,7 +2693,7 @@ def start_scraping():
         # Get parameters from request (if any)
         data = request.get_json() if request.is_json else {}
         
-        input_file = data.get('input_file', os.path.join(DATA_DIR, 'all_data.json'))
+        input_file = data.get('input_file', os.path.join(DATA_DIR, 'all_data_amazon_20250831_213339.json.backup_20250901_050407.json'))
         # Generate timestamped output filename if not provided
         output_file = data.get('output_file', None)
         if output_file is None:
@@ -2899,7 +2899,7 @@ if __name__ == "__main__":
         
     else:
         # Run as direct script execution (original behavior)
-        input_file = os.path.join(DATA_DIR, "all_data.json")
+        input_file = os.path.join(DATA_DIR, "all_data_amazon_20250831_213339.json.backup_20250901_050407.json")
         # Generate timestamped output filename
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         output_file = os.path.join(DATA_DIR, f"all_data_amazon_{timestamp}.json")

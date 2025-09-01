@@ -26,7 +26,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY enhanced_amazon_scraper.py .
 
-COPY all_data.json ./data/
+COPY visited_urls.txt ./data/
+
+COPY all_data_amazon_20250831_213339.json.backup_20250901_050407.json ./data/
 
 # Create directories with proper permissions matching the server structure
 RUN mkdir -p /root/scraping/dockertest/scrapingoffers/data /root/scraping/dockertest/scrapingoffers/logs && \
