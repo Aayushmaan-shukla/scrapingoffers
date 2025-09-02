@@ -52,6 +52,26 @@ import shutil
 from flask import Flask, request, jsonify
 import threading
 
+# ===============================================
+# SIMPLE DISK CACHE FOR PER-URL SCRAPE RESULTS
+# ===============================================
+
+def load_url_cache(cache_path: str = "flipkart_cache.json") -> Dict[str, Any]:
+    try:
+        if os.path.exists(cache_path):
+            with open(cache_path, 'r', encoding='utf-8') as f:
+                return json.load(f)
+    except Exception as e:
+        logging.warning(f"Failed to load cache: {e}")
+    return {}
+
+def save_url_cache(cache: Dict[str, Any], cache_path: str = "flipkart_cache.json") -> None:
+    try:
+        with open(cache_path, 'w', encoding='utf-8') as f:
+            json.dump(cache, f, indent=2, ensure_ascii=False)
+    except Exception as e:
+        logging.warning(f"Failed to save cache: {e}")
+
 # Setup logging
 logging.basicConfig(
     filename='enhanced_flipkart_scraper.log',
@@ -1461,6 +1481,10 @@ def process_comprehensive_flipkart_links(input_file="comprehensive_amazon_offers
     # Setup analyzer
     analyzer = FlipkartOfferAnalyzer()
     
+    # Load URL cache (persisted across runs inside container)
+    cache_path = "flipkart_cache.json"
+    url_cache = load_url_cache(cache_path)
+    
     processed_count = 0
     new_offers_count = 0
     
@@ -1469,6 +1493,30 @@ def process_comprehensive_flipkart_links(input_file="comprehensive_amazon_offers
             print(f"\n🔍 Processing {idx + 1}/{len(flipkart_links)}")
             print(f"   Path: {link_data['path']}")
             print(f"   URL: {link_data['url']}")
+
+            # 0) If URL present in cache, hydrate and continue (ensures no data loss and fast reruns)
+            try:
+                if link_data['url'] in url_cache:
+                    cached = url_cache[link_data['url']]
+                    store_link_ref = link_data['store_link_ref']
+                    for key in [
+                        'price', 'in_stock', 'platform_url', 'with_exchange_price',
+                        'product_name_via_url', 'ranked_offers'
+                    ]:
+                        if key in cached:
+                            store_link_ref[key] = cached[key]
+                    append_visited_url(link_data['url'], visited_urls_file)
+                    print("   ⚡ Served from cache and recorded as visited")
+                    # Save periodic progress when using cache as well
+                    if (idx + 1) % 10 == 0:
+                        temp_backup = f"{output_file}.progress_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+                        with open(temp_backup, 'w', encoding='utf-8') as f:
+                            json.dump(data, f, indent=2, ensure_ascii=False)
+                        save_url_cache(url_cache, cache_path)
+                        print(f"   💾 Progress (cache-hit) saved to {temp_backup}")
+                    continue
+            except Exception as e:
+                logging.warning(f"Cache hydration failed for {link_data['url']}: {e}")
             
             # Check if URL is already visited and has existing offers - skip to preserve existing data
             if link_data['url'] in visited_urls:
@@ -1598,6 +1646,19 @@ def process_comprehensive_flipkart_links(input_file="comprehensive_amazon_offers
                 # Always add URL to visited list after processing (even if re-processed)
                 append_visited_url(link_data['url'], visited_urls_file)
                 print(f"   📝 Added URL to visited_urls_flipkart.txt")
+
+                # 5) Update cache for URL and persist periodically
+                try:
+                    url_cache[link_data['url']] = {
+                        'price': store_link_ref.get('price'),
+                        'in_stock': store_link_ref.get('in_stock'),
+                        'platform_url': store_link_ref.get('platform_url'),
+                        'with_exchange_price': store_link_ref.get('with_exchange_price'),
+                        'product_name_via_url': store_link_ref.get('product_name_via_url'),
+                        'ranked_offers': store_link_ref.get('ranked_offers', [])
+                    }
+                except Exception as e:
+                    logging.warning(f"Failed to update cache for {link_data['url']}: {e}")
             
             # Context manager automatically cleans up driver here
             
@@ -1623,12 +1684,42 @@ def process_comprehensive_flipkart_links(input_file="comprehensive_amazon_offers
                 with open(temp_backup, 'w', encoding='utf-8') as f:
                     json.dump(data, f, indent=2, ensure_ascii=False)
                 print(f"   💾 Progress saved to {temp_backup}")
+                save_url_cache(url_cache, cache_path)
             
             # Small delay between requests
             time.sleep(2)
     
     except KeyboardInterrupt:
         print("\n⚠️  Interrupted! Saving progress...")
+        # Save immediately on interrupt
+        try:
+            with open(output_file, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+            save_url_cache(url_cache, cache_path)
+        except Exception as e:
+            logging.error(f"Failed saving on interrupt: {e}")
+    except Exception as e:
+        # Handle resource/network style errors: save and pause (exit)
+        err = str(e)
+        logging.error(f"Fatal scraping error: {err}")
+        print(f"\n❌ Fatal scraping error encountered: {err}")
+        keywords = [
+            'HTTPConnectionPool', 'Max retries exceeded', 'Too many open files',
+            'Connection refused', 'Connection pool is full', 'Connection pool',
+            'timeout', 'timed out'
+        ]
+        if any(k.lower() in err.lower() for k in keywords):
+            print("💾 Saving current progress and pausing run due to resource/network issue...")
+            try:
+                with open(output_file, 'w', encoding='utf-8') as f:
+                    json.dump(data, f, indent=2, ensure_ascii=False)
+                save_url_cache(url_cache, cache_path)
+                print(f"✅ Progress saved to {output_file} and cache persisted. Exiting early.")
+            except Exception as se:
+                logging.error(f"Failed to save after error: {se}")
+        else:
+            # Re-raise non-resource errors
+            raise
     
     finally:
         # No manual driver cleanup needed - context manager handles it
@@ -1638,6 +1729,7 @@ def process_comprehensive_flipkart_links(input_file="comprehensive_amazon_offers
         # Save final output
         with open(output_file, 'w', encoding='utf-8') as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
+        save_url_cache(url_cache, cache_path)
         
         print(f"\n✅ Final output saved to {output_file}")
         
