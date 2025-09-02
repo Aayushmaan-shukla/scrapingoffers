@@ -371,6 +371,77 @@ DATA_DIR = os.getenv("SCRAPED_OFFER_DATA_DIR", os.path.join(os.getcwd(), "data")
 os.makedirs(DATA_DIR, exist_ok=True)
 VISITED_URLS_FILE = os.path.join(DATA_DIR, "visited_urls.txt")
 
+# Disk-backed cache for per-URL scraping results to avoid re-scraping duplicates
+CACHE_FILE = os.path.join(DATA_DIR, "amazon_url_cache.json")
+
+def load_url_cache(cache_file: str = CACHE_FILE) -> Dict[str, Dict]:
+    """
+    Load the URL result cache from disk.
+    """
+    try:
+        if os.path.exists(cache_file):
+            with open(cache_file, 'r', encoding='utf-8') as f:
+                cache = json.load(f)
+                if isinstance(cache, dict):
+                    logging.info(f"Loaded URL cache with {len(cache)} entries from {cache_file}")
+                    return cache
+    except Exception as e:
+        logging.warning(f"Failed to load URL cache: {e}")
+    return {}
+
+def save_url_cache(cache: Dict[str, Dict], cache_file: str = CACHE_FILE) -> None:
+    """
+    Persist the URL result cache to disk atomically.
+    """
+    try:
+        tmp_file = f"{cache_file}.tmp"
+        with open(tmp_file, 'w', encoding='utf-8') as f:
+            json.dump(cache, f, indent=2, ensure_ascii=False)
+        os.replace(tmp_file, cache_file)
+        logging.info(f"Saved URL cache with {len(cache)} entries to {cache_file}")
+    except Exception as e:
+        logging.warning(f"Failed to save URL cache: {e}")
+
+def apply_cached_result_to_store_link(store_link: Dict, cached: Dict) -> None:
+    """
+    Apply cached scraping fields onto a store_link dict in the same format used by the script.
+    """
+    for key in [
+        'price', 'in_stock', 'product_name_via_url', 'platform_url',
+        'with_exchange_price', 'ranked_offers'
+    ]:
+        if key in cached:
+            store_link[key] = cached[key]
+
+def extract_store_link_snapshot(store_link: Dict) -> Dict:
+    """
+    Capture the subset of fields we cache for a processed URL.
+    """
+    snapshot = {}
+    for key in [
+        'price', 'in_stock', 'product_name_via_url', 'platform_url',
+        'with_exchange_price', 'ranked_offers'
+    ]:
+        if key in store_link:
+            snapshot[key] = store_link[key]
+    return snapshot
+
+def save_progress_and_pause(output_file: str, data: List[Dict], cache: Dict[str, Dict]) -> None:
+    """
+    Save current progress and cache to disk and pause (exit function) for stability.
+    """
+    try:
+        progress_file = f"{output_file}.progress_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        ensure_parent_dir(progress_file)
+        with open(progress_file, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+        logging.error(f"Severe connection/resource errors. Progress saved to {progress_file}. Pausing run.")
+        print(f"   💾 Progress saved to {progress_file}. Pausing run due to persistent errors.")
+    except Exception as e:
+        logging.error(f"Failed to save progress before pause: {e}")
+    # Always attempt to persist the cache as well
+    save_url_cache(cache)
+
 # Setup logging (log file inside mounted volume)
 logging.basicConfig(
     filename=os.path.join(DATA_DIR, 'enhanced_amazon_scraper.log'),
@@ -2103,6 +2174,9 @@ def process_comprehensive_amazon_store_links(input_file, output_file, start_idx=
     visited_urls_file = manage_visited_urls_file(VISITED_URLS_FILE)
     visited_urls = load_visited_urls(visited_urls_file)
     
+    # Load URL cache to reuse results for duplicate links within the same file/run
+    url_cache: Dict[str, Dict] = load_url_cache()
+    
     # Use comprehensive extractor to find ALL Amazon links
     extractor = ComprehensiveAmazonExtractor()
     amazon_store_links = extractor.find_all_amazon_store_links(data)
@@ -2145,9 +2219,19 @@ def process_comprehensive_amazon_store_links(input_file, output_file, start_idx=
                 
                 print(f"   🔗 Amazon URL: {amazon_url[:100]}...")
                 
-                # Check if URL has already been visited/scraped
-                if amazon_url in visited_urls:
-                    print(f"   ⏭️  URL already scraped, skipping to preserve existing offers")
+                # If URL already processed in this or previous run, reuse cached result instead of skipping
+                if amazon_url in visited_urls or amazon_url in url_cache:
+                    cached = url_cache.get(amazon_url)
+                    if cached:
+                        apply_cached_result_to_store_link(store_link, cached)
+                        print(f"   ♻️  Applied cached data for already processed URL")
+                    else:
+                        print(f"   ⏭️  URL already scraped (no cache snapshot found), leaving existing fields as-is")
+                    # Ensure visited tracking is updated and continue to next link
+                    append_visited_url(amazon_url, visited_urls_file)
+                    visited_urls.add(amazon_url)
+                    # Small delay to be gentle on resources
+                    time.sleep(1)
                     continue
                 
                 # Session management: recreate driver for each link (if not the first link)
@@ -2321,6 +2405,8 @@ def process_comprehensive_amazon_store_links(input_file, output_file, start_idx=
                 # Add URL to visited list after successful processing
                 append_visited_url(amazon_url, visited_urls_file)
                 visited_urls.add(amazon_url)
+                # Update cache with the processed result
+                url_cache[amazon_url] = extract_store_link_snapshot(store_link)
                 
                 # Session refreshed after each link - no counter needed
                 
@@ -2352,7 +2438,8 @@ def process_comprehensive_amazon_store_links(input_file, output_file, start_idx=
                         logging.warning(f"Could not delete old backup files: {e}")
                         print(f"   ⚠️  Could not delete old backup files: {e}")
                     
-                    # Clean up resources every 100 URLs to prevent memory leaks
+                    # Persist cache and clean up resources every 100 URLs to prevent memory leaks
+                    save_url_cache(url_cache)
                     cleanup_resources()
                 
                 # Small delay between requests
@@ -2365,6 +2452,20 @@ def process_comprehensive_amazon_store_links(input_file, output_file, start_idx=
                 # Check if this is a connection or "too many open files" error
                 error_str = str(e).lower()
                 is_connection_error = any(keyword in error_str for keyword in PROXY_CONFIG['connection_error_keywords'])
+                is_fd_error = 'too many open files' in error_str or 'errno 24' in error_str
+                
+                # Track persistent errors and pause if threshold exceeded
+                if not hasattr(process_comprehensive_amazon_store_links, '_persistent_error_count'):
+                    process_comprehensive_amazon_store_links._persistent_error_count = 0  # type: ignore
+                if is_connection_error or is_fd_error:
+                    process_comprehensive_amazon_store_links._persistent_error_count += 1  # type: ignore
+                else:
+                    process_comprehensive_amazon_store_links._persistent_error_count = 0  # type: ignore
+                
+                if getattr(process_comprehensive_amazon_store_links, '_persistent_error_count', 0) >= 5:  # type: ignore
+                    # Save current progress and cache, then pause execution
+                    save_progress_and_pause(output_file, data, url_cache)
+                    return
                 
                 if is_connection_error and PROXY_CONFIG['enabled']:
                     print(f"   🔄 Connection error detected, attempting proxy rotation...")
@@ -2579,6 +2680,8 @@ def process_comprehensive_amazon_store_links(input_file, output_file, start_idx=
         ensure_parent_dir(output_file)
         with open(output_file, 'w', encoding='utf-8') as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
+        # Save cache at the end
+        save_url_cache(url_cache)
         
         print(f"\n✅ Final output saved to {output_file}")
         
@@ -2621,7 +2724,7 @@ scraping_status = {
     'output_file': None
 }
 
-def run_scraper_process(input_file="all_data_amazon_20250831_213339.json.backup_20250901_050407.json", output_file=None, start_idx=0, max_entries=None):
+def run_scraper_process(input_file="all_data.json", output_file=None, start_idx=0, max_entries=None):
     """
     Function to run the scraper process in a separate thread
     """
@@ -2693,7 +2796,7 @@ def start_scraping():
         # Get parameters from request (if any)
         data = request.get_json() if request.is_json else {}
         
-        input_file = data.get('input_file', os.path.join(DATA_DIR, 'all_data_amazon_20250831_213339.json.backup_20250901_050407.json'))
+        input_file = data.get('input_file', os.path.join(DATA_DIR, 'all_data.json'))
         # Generate timestamped output filename if not provided
         output_file = data.get('output_file', None)
         if output_file is None:
@@ -2899,7 +3002,7 @@ if __name__ == "__main__":
         
     else:
         # Run as direct script execution (original behavior)
-        input_file = os.path.join(DATA_DIR, "all_data_amazon_20250831_213339.json.backup_20250901_050407.json")
+        input_file = os.path.join(DATA_DIR, "all_data.json")
         # Generate timestamped output filename
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         output_file = os.path.join(DATA_DIR, f"all_data_amazon_{timestamp}.json")
