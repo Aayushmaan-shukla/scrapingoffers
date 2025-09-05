@@ -21,7 +21,13 @@ import json
 import time
 import gc
 import glob
+import signal
+import sys
+import traceback
 from contextlib import contextmanager
+from concurrent.futures import ThreadPoolExecutor
+import threading
+import queue
 
 # Platform-specific imports
 try:
@@ -47,10 +53,320 @@ from dataclasses import dataclass
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException, NoSuchElementException
+from selenium.common.exceptions import TimeoutException, NoSuchElementException, WebDriverException
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
 import shutil
 from flask import Flask, request, jsonify
 import threading
+import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+
+# ===============================================
+# ENHANCED ERROR HANDLING AND DRIVER MANAGEMENT
+# ===============================================
+
+class DriverManager:
+    """Enhanced Chrome driver manager with error handling and restart capabilities"""
+    
+    def __init__(self, max_retries=3, restart_on_errors=True):
+        self.max_retries = max_retries
+        self.restart_on_errors = restart_on_errors
+        self.driver = None
+        self.creation_attempts = 0
+        self.last_error = None
+        
+    def create_driver(self):
+        """Create a new Chrome driver with enhanced error handling"""
+        self.creation_attempts += 1
+        print(f"   🔧 Creating Chrome driver (attempt {self.creation_attempts}/{self.max_retries})...")
+        
+        try:
+            options = uc.ChromeOptions()
+            
+            # Basic headless configuration
+            options.add_argument('--headless=new')
+            options.add_argument('--no-sandbox')
+            options.add_argument('--disable-dev-shm-usage')
+            options.add_argument('--disable-gpu')
+            options.add_argument('--disable-web-security')
+            options.add_argument('--disable-features=VizDisplayCompositor')
+            options.add_argument('--window-size=1920,1080')
+            
+            # Resource management optimizations
+            options.add_argument('--max_old_space_size=512')
+            options.add_argument('--disable-background-timer-throttling')
+            options.add_argument('--disable-renderer-backgrounding')
+            options.add_argument('--disable-backgrounding-occluded-windows')
+            options.add_argument('--disable-client-side-phishing-detection')
+            options.add_argument('--disable-default-apps')
+            options.add_argument('--disable-extensions')
+            options.add_argument('--disable-plugins')
+            options.add_argument('--disable-hang-monitor')
+            options.add_argument('--disable-popup-blocking')
+            options.add_argument('--disable-prompt-on-repost')
+            options.add_argument('--disable-sync')
+            options.add_argument('--disable-translate')
+            options.add_argument('--disable-web-resources')
+            options.add_argument('--no-first-run')
+            options.add_argument('--safebrowsing-disable-auto-update')
+            
+            # Memory and file handle optimizations
+            options.add_argument('--memory-pressure-off')
+            options.add_argument('--aggressive-cache-discard')
+            options.add_argument('--disable-background-networking')
+            
+            # Anti-detection measures
+            options.add_argument('--disable-blink-features=AutomationControlled')
+            options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36')
+            
+            # Additional stability options
+            options.add_argument('--disable-logging')
+            options.add_argument('--disable-permissions-api')
+            options.add_argument('--disable-notifications')
+            options.add_argument('--disable-save-password-bubble')
+            options.add_argument('--disable-single-click-autofill')
+            options.add_argument('--disable-autofill-keyboard-accessory-view')
+            options.add_argument('--disable-full-form-autofill-ios')
+            
+            # Create driver
+            driver = uc.Chrome(options=options)
+            driver.set_page_load_timeout(30)
+            driver.implicitly_wait(10)
+            
+            self.driver = driver
+            self.last_error = None
+            print(f"   ✅ Chrome driver created successfully")
+            return driver
+            
+        except Exception as e:
+            self.last_error = str(e)
+            error_msg = str(e).lower()
+            
+            # Check for specific error types that require restart
+            restart_errors = [
+                'httpconnectionpool', 'max retries exceeded', 'too many open files',
+                'connection refused', 'connection pool is full', 'timeout', 'timed out',
+                'session not created', 'chrome failed to start', 'chromedriver',
+                'undetected_chromedriver', 'patch session', 'webdriver', 'selenium'
+            ]
+            
+            should_restart = any(err in error_msg for err in restart_errors)
+            
+            print(f"   ❌ Chrome driver creation failed: {e}")
+            logging.error(f"Chrome driver creation failed (attempt {self.creation_attempts}): {e}")
+            
+            if should_restart and self.creation_attempts < self.max_retries:
+                print(f"   🔄 Error indicates driver restart needed, retrying in 5 seconds...")
+                time.sleep(5)
+                return self.create_driver()
+            elif self.creation_attempts >= self.max_retries:
+                print(f"   💥 Max retries exceeded, giving up on driver creation")
+                raise Exception(f"Failed to create Chrome driver after {self.max_retries} attempts. Last error: {e}")
+            else:
+                raise e
+    
+    def restart_driver(self):
+        """Restart the Chrome driver"""
+        print(f"   🔄 Restarting Chrome driver...")
+        self.quit_driver()
+        time.sleep(3)  # Wait for cleanup
+        return self.create_driver()
+    
+    def quit_driver(self):
+        """Safely quit the Chrome driver"""
+        if self.driver:
+            try:
+                print(f"   🧹 Quitting Chrome driver...")
+                self.driver.quit()
+                print(f"   ✅ Chrome driver quit successfully")
+            except Exception as e:
+                print(f"   ⚠️  Error quitting driver: {e}")
+                logging.warning(f"Error quitting driver: {e}")
+            finally:
+                self.driver = None
+    
+    def is_driver_healthy(self):
+        """Check if the current driver is healthy"""
+        if not self.driver:
+            return False
+        
+        try:
+            # Try to get current URL to test driver health
+            self.driver.current_url
+            return True
+        except Exception as e:
+            print(f"   ⚠️  Driver health check failed: {e}")
+            return False
+
+class ThreadManager:
+    """Enhanced thread management with refresh capabilities"""
+    
+    def __init__(self, max_workers=4):
+        self.max_workers = max_workers
+        self.executor = None
+        self.active_threads = []
+        self.thread_refresh_interval = 50  # Refresh every 50 operations
+        self.operation_count = 0
+        
+    def get_executor(self):
+        """Get or create thread pool executor"""
+        if self.executor is None or self.executor._shutdown:
+            self.executor = ThreadPoolExecutor(max_workers=self.max_workers)
+            print(f"   🧵 Created new thread pool with {self.max_workers} workers")
+        return self.executor
+    
+    def refresh_threads(self):
+        """Refresh thread pool to prevent thread consumption"""
+        self.operation_count += 1
+        
+        if self.operation_count % self.thread_refresh_interval == 0:
+            print(f"   🔄 Refreshing thread pool (operation {self.operation_count})...")
+            
+            # Shutdown current executor
+            if self.executor and not self.executor._shutdown:
+                self.executor.shutdown(wait=True)
+                print(f"   🧹 Shutdown old thread pool")
+            
+            # Create new executor
+            self.executor = ThreadPoolExecutor(max_workers=self.max_workers)
+            print(f"   🧵 Created fresh thread pool with {self.max_workers} workers")
+            
+            # Force garbage collection
+            gc.collect()
+            time.sleep(1)
+    
+    def shutdown(self):
+        """Shutdown thread pool"""
+        if self.executor and not self.executor._shutdown:
+            self.executor.shutdown(wait=True)
+            print(f"   🧹 Thread pool shutdown completed")
+
+class BackupManager:
+    """Enhanced backup file management with automatic cleanup"""
+    
+    def __init__(self, input_file, max_backups=3):
+        self.input_file = input_file
+        self.max_backups = max_backups
+        self.backup_dir = os.path.dirname(input_file) if os.path.dirname(input_file) else "."
+        self.base_name = os.path.splitext(os.path.basename(input_file))[0]
+    
+    def create_backup(self):
+        """Create a new backup file and clean up old ones"""
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        backup_file = f"{self.input_file}.backup_{timestamp}"
+        
+        # Clean up old backups first
+        self.cleanup_old_backups()
+        
+        # Create new backup
+        try:
+            shutil.copy2(self.input_file, backup_file)
+            print(f"💾 Created backup: {backup_file}")
+            return backup_file
+        except Exception as e:
+            print(f"⚠️  Failed to create backup: {e}")
+            logging.error(f"Backup creation failed: {e}")
+            return None
+    
+    def cleanup_old_backups(self):
+        """Clean up old backup files to save storage"""
+        try:
+            # Find all backup files
+            backup_pattern = f"{self.base_name}.backup_*.json"
+            backup_files = glob.glob(os.path.join(self.backup_dir, backup_pattern))
+            
+            if len(backup_files) > self.max_backups:
+                # Sort by modification time (oldest first)
+                backup_files.sort(key=os.path.getmtime)
+                
+                # Remove oldest backups
+                files_to_remove = backup_files[:-self.max_backups]
+                for old_backup in files_to_remove:
+                    try:
+                        os.remove(old_backup)
+                        print(f"   🗑️  Removed old backup: {os.path.basename(old_backup)}")
+                    except Exception as e:
+                        print(f"   ⚠️  Could not remove {os.path.basename(old_backup)}: {e}")
+                
+                print(f"   🧹 Cleaned up {len(files_to_remove)} old backup files")
+            
+        except Exception as e:
+            print(f"   ⚠️  Error during backup cleanup: {e}")
+            logging.warning(f"Backup cleanup error: {e}")
+    
+    def cleanup_progress_files(self, output_file):
+        """Clean up old progress files"""
+        try:
+            progress_pattern = f"{os.path.splitext(os.path.basename(output_file))[0]}.progress_*.json"
+            progress_files = glob.glob(os.path.join(self.backup_dir, progress_pattern))
+            
+            if progress_files:
+                for progress_file in progress_files:
+                    try:
+                        os.remove(progress_file)
+                    except Exception:
+                        pass  # Silently remove old progress files
+                
+                print(f"   🧹 Cleaned up {len(progress_files)} old progress files")
+                
+        except Exception as e:
+            print(f"   ⚠️  Error during progress cleanup: {e}")
+
+class ErrorHandler:
+    """Enhanced error handling for various scraping errors"""
+    
+    @staticmethod
+    def is_connection_error(error):
+        """Check if error is a connection-related error"""
+        error_str = str(error).lower()
+        connection_errors = [
+            'httpconnectionpool', 'max retries exceeded', 'too many open files',
+            'connection refused', 'connection pool is full', 'timeout', 'timed out',
+            'connection aborted', 'connection reset', 'network is unreachable',
+            'name or service not known', 'temporary failure in name resolution'
+        ]
+        return any(err in error_str for err in connection_errors)
+    
+    @staticmethod
+    def is_driver_error(error):
+        """Check if error is a driver-related error"""
+        error_str = str(error).lower()
+        driver_errors = [
+            'session not created', 'chrome failed to start', 'chromedriver',
+            'undetected_chromedriver', 'patch session', 'webdriver', 'selenium',
+            'invalid session id', 'no such window', 'stale element reference'
+        ]
+        return any(err in error_str for err in driver_errors)
+    
+    @staticmethod
+    def is_resource_error(error):
+        """Check if error is a resource-related error"""
+        error_str = str(error).lower()
+        resource_errors = [
+            'too many open files', 'out of memory', 'memory error',
+            'file descriptor', 'resource temporarily unavailable'
+        ]
+        return any(err in error_str for err in resource_errors)
+    
+    @staticmethod
+    def handle_error(error, context=""):
+        """Handle different types of errors with appropriate responses"""
+        error_str = str(error)
+        
+        if ErrorHandler.is_connection_error(error):
+            print(f"   🌐 Connection error detected: {error_str}")
+            return "restart_driver"
+        elif ErrorHandler.is_driver_error(error):
+            print(f"   🤖 Driver error detected: {error_str}")
+            return "restart_driver"
+        elif ErrorHandler.is_resource_error(error):
+            print(f"   💾 Resource error detected: {error_str}")
+            return "cleanup_and_retry"
+        else:
+            print(f"   ❌ Unknown error: {error_str}")
+            return "retry"
 
 # ===============================================
 # SIMPLE DISK CACHE FOR PER-URL SCRAPE RESULTS
@@ -147,21 +463,35 @@ def force_cleanup():
     time.sleep(1)
 
 @contextmanager
-def chrome_driver_context():
-    """Context manager for Chrome driver with proper resource cleanup"""
+def chrome_driver_context(driver_manager=None):
+    """Enhanced context manager for Chrome driver with error handling and restart capabilities"""
     driver = None
+    manager = driver_manager or DriverManager()
+    
     try:
-        print("   🔧 Creating Chrome driver with resource management...")
+        print("   🔧 Creating Chrome driver with enhanced error handling...")
         log_resource_usage("Before driver creation - ")
         
-        driver = create_chrome_driver()
+        driver = manager.create_driver()
         
         log_resource_usage("After driver creation - ")
         yield driver
         
     except Exception as e:
         logging.error(f"Error in chrome_driver_context: {e}")
-        raise
+        
+        # Try to restart driver if it's a recoverable error
+        if ErrorHandler.is_driver_error(e) or ErrorHandler.is_connection_error(e):
+            print(f"   🔄 Attempting driver restart due to error: {e}")
+            try:
+                driver = manager.restart_driver()
+                log_resource_usage("After driver restart - ")
+                yield driver
+            except Exception as restart_error:
+                logging.error(f"Driver restart failed: {restart_error}")
+                raise restart_error
+        else:
+            raise
     finally:
         if driver:
             try:
@@ -169,7 +499,7 @@ def chrome_driver_context():
                 log_resource_usage("Before cleanup - ")
                 
                 # Close all windows and quit driver
-                driver.quit()
+                manager.quit_driver()
                 
                 # Force cleanup
                 force_cleanup()
@@ -1387,15 +1717,21 @@ def create_chrome_driver():
         logging.error(f"Failed to create Chrome driver: {e}")
         raise
 
-def process_comprehensive_flipkart_links(input_file="comprehensive_amazon_offers.json", 
-                                       output_file="comprehensive_amazon_offers.json",
+def process_comprehensive_flipkart_links(input_file="all_data.json", 
+                                       output_file="all_data.json",
                                        flipkart_urls_file="visited_urls_flipkart.txt"):
     """
-    Process Flipkart store links in the comprehensive JSON file with smart processing
+    Process Flipkart store links in the comprehensive JSON file with enhanced error handling
     - Completely isolates Amazon and Croma offers (no changes)
     - Smart processing: Skips URLs with existing offers to preserve data, processes new/empty ones
     - Traverses ALL nested locations comprehensively
     - Runs in fully automated mode (headless, no user interaction)
+    
+    ENHANCED ERROR HANDLING:
+    - Automatic Chrome driver restart on connection/driver errors
+    - Thread pool refresh to prevent thread consumption
+    - Automatic backup file cleanup to save storage
+    - Comprehensive error detection and recovery
     
     NEW FUNCTIONALITY:
     - Extracts Flipkart product prices from <div class="Nx9bqj CxhGGd yKS4la"> elements
@@ -1415,26 +1751,18 @@ def process_comprehensive_flipkart_links(input_file="comprehensive_amazon_offers
     - Automatic URL tracking and smart processing
     - Smart session recycling for better stability
     - Automatic backup file cleanup to preserve storage
+    - Enhanced error recovery and driver restart capabilities
     """
     
-    # Create backup before processing
-    backup_file = f"{input_file}.backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    # Initialize enhanced managers
+    backup_manager = BackupManager(input_file, max_backups=3)
+    thread_manager = ThreadManager(max_workers=4)
+    driver_manager = DriverManager(max_retries=3, restart_on_errors=True)
     
-    # Remove previous backup files to preserve storage
-    backup_dir = os.path.dirname(input_file) if os.path.dirname(input_file) else "."
-    backup_pattern = f"{os.path.splitext(os.path.basename(input_file))[0]}.backup_*.json"
-    old_backups = glob.glob(os.path.join(backup_dir, backup_pattern))
-    if old_backups:
-        print(f"🗑️  Removing {len(old_backups)} previous backup files to preserve storage...")
-        for old_backup in old_backups:
-            try:
-                os.remove(old_backup)
-                print(f"   🗑️  Removed: {os.path.basename(old_backup)}")
-            except Exception as e:
-                print(f"   ⚠️  Could not remove {os.path.basename(old_backup)}: {e}")
-    
-    shutil.copy2(input_file, backup_file)
-    print(f"💾 Created backup: {backup_file}")
+    # Create backup with automatic cleanup
+    backup_file = backup_manager.create_backup()
+    if not backup_file:
+        print("⚠️  Warning: Could not create backup, proceeding without backup")
     
     # Load the JSON data
     print(f"📖 Loading data from {input_file}")
@@ -1487,12 +1815,17 @@ def process_comprehensive_flipkart_links(input_file="comprehensive_amazon_offers
     
     processed_count = 0
     new_offers_count = 0
+    consecutive_errors = 0
+    max_consecutive_errors = 5
     
     try:
         for idx, link_data in enumerate(flipkart_links):
             print(f"\n🔍 Processing {idx + 1}/{len(flipkart_links)}")
             print(f"   Path: {link_data['path']}")
             print(f"   URL: {link_data['url']}")
+
+            # Refresh threads periodically
+            thread_manager.refresh_threads()
 
             # 0) If URL present in cache, hydrate and continue (ensures no data loss and fast reruns)
             try:
@@ -1513,6 +1846,7 @@ def process_comprehensive_flipkart_links(input_file="comprehensive_amazon_offers
                         with open(temp_backup, 'w', encoding='utf-8') as f:
                             json.dump(data, f, indent=2, ensure_ascii=False)
                         save_url_cache(url_cache, cache_path)
+                        backup_manager.cleanup_progress_files(output_file)
                         print(f"   💾 Progress (cache-hit) saved to {temp_backup}")
                     continue
             except Exception as e:
@@ -1529,136 +1863,180 @@ def process_comprehensive_flipkart_links(input_file="comprehensive_amazon_offers
                 else:
                     print(f"   🔄 URL visited but no offers - will re-process to get offers")
             
-            print(f"   🔧 Session: Fresh session with resource management")
+            print(f"   🔧 Session: Fresh session with enhanced error handling")
             
-            # Use context manager for proper resource cleanup
-            with chrome_driver_context() as driver:
-                # Process Flipkart links (skip if already visited with offers, otherwise process)
-                store_link_ref = link_data['store_link_ref']
-                existing_offers = 'ranked_offers' in store_link_ref and store_link_ref['ranked_offers']
-                if existing_offers:
-                    print(f"   🔄 Link has existing offers, processing to update price/stock info")
-                else:
-                    print(f"   🆕 Processing new link or link without offers")
-                
-                # Get Flipkart offers first to determine if offers exist
-                offers = get_flipkart_offers(driver, link_data['url'])
-                offers_found = bool(offers and len(offers) > 0)
-                
-                # Extract price and stock status information WITH offers context
-                price_stock_info = extract_flipkart_price_and_stock(driver, link_data['url'], offers_found=offers_found)
-                
-                # RETRY MECHANISM FOR UNDETERMINED STOCK STATUS
-                retry_count = 0
-                max_retries_for_undetermined = 2
-                
-                while price_stock_info['in_stock'] is None and retry_count < max_retries_for_undetermined:
-                    retry_count += 1
-                    print(f"   🔄 Stock status UNDETERMINED - Retry attempt {retry_count}/{max_retries_for_undetermined}")
-                    logging.info(f"Retrying stock status determination for {link_data['url']} - Attempt {retry_count}/{max_retries_for_undetermined}")
-                    
-                    # Wait 3 seconds before retry
-                    time.sleep(3)
-                    
-                    # Retry scraping offers
-                    print(f"   🔍 Re-scraping offers...")
-                    offers = get_flipkart_offers(driver, link_data['url'])
-                    offers_found = bool(offers and len(offers) > 0)
-                    
-                    # Re-extract price and stock status
-                    print(f"   📦 Re-checking stock status...")
-                    price_stock_info = extract_flipkart_price_and_stock(driver, link_data['url'], offers_found=offers_found)
-                    
-                    if price_stock_info['in_stock'] is not None:
-                        print(f"   ✅ Stock status determined after retry {retry_count}: {'In Stock' if price_stock_info['in_stock'] else 'Sold Out'}")
-                        break
-                    else:
-                        print(f"   ⚠️  Stock status still undetermined after retry {retry_count}")
-                        if retry_count < max_retries_for_undetermined:
-                            print(f"   ⏳ Will retry again in 3 seconds...")
-                
-                if retry_count > 0:
-                    if price_stock_info['in_stock'] is not None:
-                        print(f"   🎯 Final result after {retry_count} retries: Stock status determined")
-                    else:
-                        print(f"   ❌ Final result after {retry_count} retries: Stock status remains undetermined")
-                
-                # Update price if found, otherwise keep existing price
-                if price_stock_info['price']:
-                    store_link_ref['price'] = price_stock_info['price']
-                    print(f"   💰 Updated price: {price_stock_info['price']}")
-                else:
-                    print(f"   💰 Price not found on page, keeping existing: {store_link_ref.get('price')}")
-                
-                # Add in_stock key just below price key
-                store_link_ref['in_stock'] = price_stock_info['in_stock']
-                status_text = 'In Stock' if price_stock_info['in_stock'] is True else ('Sold Out' if price_stock_info['in_stock'] is False else 'Undetermined')
-                print(f"   📦 Final stock status: {status_text}")
-
-                # Add platform_url (actual visited URL after any redirects)
+            # Enhanced error handling with retry mechanism
+            max_retries = 3
+            retry_count = 0
+            success = False
+            
+            while retry_count < max_retries and not success:
                 try:
-                    platform_url = driver.current_url
-                    store_link_ref['platform_url'] = platform_url
-                    print(f"   🌐 Platform URL set: {platform_url}")
-                except Exception:
-                    store_link_ref['platform_url'] = link_data['url']
-                    print(f"   🌐 Platform URL fallback to provided URL")
+                    # Use enhanced context manager for proper resource cleanup
+                    with chrome_driver_context(driver_manager) as driver:
+                        # Process Flipkart links (skip if already visited with offers, otherwise process)
+                        store_link_ref = link_data['store_link_ref']
+                        existing_offers = 'ranked_offers' in store_link_ref and store_link_ref['ranked_offers']
+                        if existing_offers:
+                            print(f"   🔄 Link has existing offers, processing to update price/stock info")
+                        else:
+                            print(f"   🆕 Processing new link or link without offers")
+                        
+                        # Get Flipkart offers first to determine if offers exist
+                        offers = get_flipkart_offers(driver, link_data['url'])
+                        offers_found = bool(offers and len(offers) > 0)
+                        
+                        # Extract price and stock status information WITH offers context
+                        price_stock_info = extract_flipkart_price_and_stock(driver, link_data['url'], offers_found=offers_found)
+                        
+                        # RETRY MECHANISM FOR UNDETERMINED STOCK STATUS
+                        stock_retry_count = 0
+                        max_retries_for_undetermined = 2
+                        
+                        while price_stock_info['in_stock'] is None and stock_retry_count < max_retries_for_undetermined:
+                            stock_retry_count += 1
+                            print(f"   🔄 Stock status UNDETERMINED - Retry attempt {stock_retry_count}/{max_retries_for_undetermined}")
+                            logging.info(f"Retrying stock status determination for {link_data['url']} - Attempt {stock_retry_count}/{max_retries_for_undetermined}")
+                            
+                            # Wait 3 seconds before retry
+                            time.sleep(3)
+                            
+                            # Retry scraping offers
+                            print(f"   🔍 Re-scraping offers...")
+                            offers = get_flipkart_offers(driver, link_data['url'])
+                            offers_found = bool(offers and len(offers) > 0)
+                            
+                            # Re-extract price and stock status
+                            print(f"   📦 Re-checking stock status...")
+                            price_stock_info = extract_flipkart_price_and_stock(driver, link_data['url'], offers_found=offers_found)
+                            
+                            if price_stock_info['in_stock'] is not None:
+                                print(f"   ✅ Stock status determined after retry {stock_retry_count}: {'In Stock' if price_stock_info['in_stock'] else 'Sold Out'}")
+                                break
+                            else:
+                                print(f"   ⚠️  Stock status still undetermined after retry {stock_retry_count}")
+                                if stock_retry_count < max_retries_for_undetermined:
+                                    print(f"   ⏳ Will retry again in 3 seconds...")
+                        
+                        if stock_retry_count > 0:
+                            if price_stock_info['in_stock'] is not None:
+                                print(f"   🎯 Final result after {stock_retry_count} retries: Stock status determined")
+                            else:
+                                print(f"   ❌ Final result after {stock_retry_count} retries: Stock status remains undetermined")
+                        
+                        # Update price if found, otherwise keep existing price
+                        if price_stock_info['price']:
+                            store_link_ref['price'] = price_stock_info['price']
+                            print(f"   💰 Updated price: {price_stock_info['price']}")
+                        else:
+                            print(f"   💰 Price not found on page, keeping existing: {store_link_ref.get('price')}")
+                        
+                        # Add in_stock key just below price key
+                        store_link_ref['in_stock'] = price_stock_info['in_stock']
+                        status_text = 'In Stock' if price_stock_info['in_stock'] is True else ('Sold Out' if price_stock_info['in_stock'] is False else 'Undetermined')
+                        print(f"   📦 Final stock status: {status_text}")
 
-                # Add with_exchange_price if computed
-                if price_stock_info.get('with_exchange_price'):
-                    store_link_ref['with_exchange_price'] = price_stock_info['with_exchange_price']
-                    print(f"   🔁 With Exchange Price: {price_stock_info['with_exchange_price']}")
-                else:
-                    print(f"   🔁 No exchange price found")
-                
-                # Add product_name_via_url if extracted
-                if price_stock_info.get('product_name_via_url'):
-                    store_link_ref['product_name_via_url'] = price_stock_info['product_name_via_url']
-                    print(f"   📱 Product name via URL: {price_stock_info['product_name_via_url']}")
-                else:
-                    print(f"   📱 No product name extracted from URL")
-                
-                if offers:
-                    # Get product price for ranking
-                    price_str = store_link_ref.get('price', '₹0')
-                    product_price = extract_price_amount(price_str)
-                    
-                    # Rank the offers
-                    ranked_offers = analyzer.rank_offers(offers, product_price)
-                    
-                    # CRITICAL: Update ONLY the Flipkart store link (no other changes)
-                    store_link_ref['ranked_offers'] = ranked_offers
-                    
-                    processed_count += 1
-                    new_offers_count += len(ranked_offers)
-                    
-                    print(f"   ✅ Added {len(ranked_offers)} ranked offers")
-                    
-                    # Log top offers
-                    for i, offer in enumerate(ranked_offers[:2], 1):
-                        score_display = offer['score'] if offer['score'] is not None else 'N/A'
-                        print(f"      Rank {i}: {offer['title']} (Score: {score_display}, Amount: ₹{offer['amount']})")
-                else:
-                    print(f"   ❌ No offers found")
-                    store_link_ref['ranked_offers'] = []
-                    processed_count += 1
-                
-                # Always add URL to visited list after processing (even if re-processed)
-                append_visited_url(link_data['url'], visited_urls_file)
-                print(f"   📝 Added URL to visited_urls_flipkart.txt")
+                        # Add platform_url (actual visited URL after any redirects)
+                        try:
+                            platform_url = driver.current_url
+                            store_link_ref['platform_url'] = platform_url
+                            print(f"   🌐 Platform URL set: {platform_url}")
+                        except Exception:
+                            store_link_ref['platform_url'] = link_data['url']
+                            print(f"   🌐 Platform URL fallback to provided URL")
 
-                # 5) Update cache for URL and persist periodically
-                try:
-                    url_cache[link_data['url']] = {
-                        'price': store_link_ref.get('price'),
-                        'in_stock': store_link_ref.get('in_stock'),
-                        'platform_url': store_link_ref.get('platform_url'),
-                        'with_exchange_price': store_link_ref.get('with_exchange_price'),
-                        'product_name_via_url': store_link_ref.get('product_name_via_url'),
-                        'ranked_offers': store_link_ref.get('ranked_offers', [])
-                    }
+                        # Add with_exchange_price if computed
+                        if price_stock_info.get('with_exchange_price'):
+                            store_link_ref['with_exchange_price'] = price_stock_info['with_exchange_price']
+                            print(f"   🔁 With Exchange Price: {price_stock_info['with_exchange_price']}")
+                        else:
+                            print(f"   🔁 No exchange price found")
+                        
+                        # Add product_name_via_url if extracted
+                        if price_stock_info.get('product_name_via_url'):
+                            store_link_ref['product_name_via_url'] = price_stock_info['product_name_via_url']
+                            print(f"   📱 Product name via URL: {price_stock_info['product_name_via_url']}")
+                        else:
+                            print(f"   📱 No product name extracted from URL")
+                        
+                        if offers:
+                            # Get product price for ranking
+                            price_str = store_link_ref.get('price', '₹0')
+                            product_price = extract_price_amount(price_str)
+                            
+                            # Rank the offers
+                            ranked_offers = analyzer.rank_offers(offers, product_price)
+                            
+                            # CRITICAL: Update ONLY the Flipkart store link (no other changes)
+                            store_link_ref['ranked_offers'] = ranked_offers
+                            
+                            processed_count += 1
+                            new_offers_count += len(ranked_offers)
+                            
+                            print(f"   ✅ Added {len(ranked_offers)} ranked offers")
+                            
+                            # Log top offers
+                            for i, offer in enumerate(ranked_offers[:2], 1):
+                                score_display = offer['score'] if offer['score'] is not None else 'N/A'
+                                print(f"      Rank {i}: {offer['title']} (Score: {score_display}, Amount: ₹{offer['amount']})")
+                        else:
+                            print(f"   ❌ No offers found")
+                            store_link_ref['ranked_offers'] = []
+                            processed_count += 1
+                        
+                        # Always add URL to visited list after processing (even if re-processed)
+                        append_visited_url(link_data['url'], visited_urls_file)
+                        print(f"   📝 Added URL to visited_urls_flipkart.txt")
+
+                        # Update cache for URL and persist periodically
+                        try:
+                            url_cache[link_data['url']] = {
+                                'price': store_link_ref.get('price'),
+                                'in_stock': store_link_ref.get('in_stock'),
+                                'platform_url': store_link_ref.get('platform_url'),
+                                'with_exchange_price': store_link_ref.get('with_exchange_price'),
+                                'product_name_via_url': store_link_ref.get('product_name_via_url'),
+                                'ranked_offers': store_link_ref.get('ranked_offers', [])
+                            }
+                        except Exception as e:
+                            logging.warning(f"Failed to update cache for {link_data['url']}: {e}")
+                        
+                        # Mark as successful
+                        success = True
+                        consecutive_errors = 0
+                        
                 except Exception as e:
-                    logging.warning(f"Failed to update cache for {link_data['url']}: {e}")
+                    retry_count += 1
+                    consecutive_errors += 1
+                    error_action = ErrorHandler.handle_error(e, f"Processing {link_data['url']}")
+                    
+                    print(f"   ❌ Error processing URL (attempt {retry_count}/{max_retries}): {e}")
+                    logging.error(f"Error processing {link_data['url']} (attempt {retry_count}): {e}")
+                    
+                    if error_action == "restart_driver":
+                        print(f"   🔄 Restarting driver due to error type")
+                        try:
+                            driver_manager.restart_driver()
+                        except Exception as restart_error:
+                            print(f"   ❌ Driver restart failed: {restart_error}")
+                    
+                    if retry_count < max_retries:
+                        wait_time = min(5 * retry_count, 15)  # Exponential backoff, max 15 seconds
+                        print(f"   ⏳ Waiting {wait_time} seconds before retry...")
+                        time.sleep(wait_time)
+                    else:
+                        print(f"   💥 Max retries exceeded for URL: {link_data['url']}")
+                        logging.error(f"Max retries exceeded for {link_data['url']}")
+                        
+                        # If too many consecutive errors, restart driver
+                        if consecutive_errors >= max_consecutive_errors:
+                            print(f"   🔄 Too many consecutive errors ({consecutive_errors}), restarting driver...")
+                            try:
+                                driver_manager.restart_driver()
+                                consecutive_errors = 0
+                            except Exception as restart_error:
+                                print(f"   ❌ Driver restart failed: {restart_error}")
+                                logging.error(f"Driver restart failed after consecutive errors: {restart_error}")
             
             # Context manager automatically cleans up driver here
             
@@ -1666,20 +2044,12 @@ def process_comprehensive_flipkart_links(input_file="comprehensive_amazon_offers
             if (idx + 1) % 5 == 0:
                 log_resource_usage(f"After processing {idx + 1} links - ")
             
-            # Save progress every 10 entries
+            # Save progress every 10 entries with enhanced cleanup
             if (idx + 1) % 10 == 0:
                 temp_backup = f"{output_file}.progress_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
                 
-                # Remove previous progress backup files to preserve storage
-                progress_backup_dir = os.path.dirname(output_file) if os.path.dirname(output_file) else "."
-                progress_backup_pattern = f"{os.path.splitext(os.path.basename(output_file))[0]}.progress_*.json"
-                old_progress_backups = glob.glob(os.path.join(progress_backup_dir, progress_backup_pattern))
-                if old_progress_backups:
-                    for old_progress_backup in old_progress_backups:
-                        try:
-                            os.remove(old_progress_backup)
-                        except Exception:
-                            pass  # Silently remove old progress backups
+                # Clean up old progress files
+                backup_manager.cleanup_progress_files(output_file)
                 
                 with open(temp_backup, 'w', encoding='utf-8') as f:
                     json.dump(data, f, indent=2, ensure_ascii=False)
@@ -1699,17 +2069,21 @@ def process_comprehensive_flipkart_links(input_file="comprehensive_amazon_offers
         except Exception as e:
             logging.error(f"Failed saving on interrupt: {e}")
     except Exception as e:
-        # Handle resource/network style errors: save and pause (exit)
+        # Enhanced error handling with manager cleanup
         err = str(e)
         logging.error(f"Fatal scraping error: {err}")
         print(f"\n❌ Fatal scraping error encountered: {err}")
-        keywords = [
-            'HTTPConnectionPool', 'Max retries exceeded', 'Too many open files',
-            'Connection refused', 'Connection pool is full', 'Connection pool',
-            'timeout', 'timed out'
-        ]
-        if any(k.lower() in err.lower() for k in keywords):
-            print("💾 Saving current progress and pausing run due to resource/network issue...")
+        
+        # Clean up managers
+        try:
+            driver_manager.quit_driver()
+            thread_manager.shutdown()
+        except Exception as cleanup_error:
+            logging.warning(f"Error during manager cleanup: {cleanup_error}")
+        
+        # Enhanced error detection
+        if ErrorHandler.is_connection_error(e) or ErrorHandler.is_driver_error(e) or ErrorHandler.is_resource_error(e):
+            print("💾 Saving current progress and pausing run due to resource/network/driver issue...")
             try:
                 with open(output_file, 'w', encoding='utf-8') as f:
                     json.dump(data, f, indent=2, ensure_ascii=False)
@@ -1722,7 +2096,13 @@ def process_comprehensive_flipkart_links(input_file="comprehensive_amazon_offers
             raise
     
     finally:
-        # No manual driver cleanup needed - context manager handles it
+        # Enhanced cleanup with managers
+        try:
+            driver_manager.quit_driver()
+            thread_manager.shutdown()
+        except Exception as cleanup_error:
+            logging.warning(f"Error during final manager cleanup: {cleanup_error}")
+        
         force_cleanup()
         log_resource_usage("Final cleanup - ")
         
@@ -1733,8 +2113,8 @@ def process_comprehensive_flipkart_links(input_file="comprehensive_amazon_offers
         
         print(f"\n✅ Final output saved to {output_file}")
         
-        # Summary
-        print(f"\n📊 COMPREHENSIVE FLIPKART PROCESSING SUMMARY:")
+        # Enhanced summary
+        print(f"\n📊 ENHANCED FLIPKART PROCESSING SUMMARY:")
         print(f"   Flipkart links processed: {processed_count}")
         print(f"   New offers added: {new_offers_count}")
         print(f"   💰 Price extraction: Active (from Flipkart pages)")
@@ -1749,6 +2129,10 @@ def process_comprehensive_flipkart_links(input_file="comprehensive_amazon_offers
         print(f"   🔒 Croma offers: COMPLETELY ISOLATED (no changes)")
         print(f"   ✅ Backup created: {backup_file}")
         print(f"   🗑️  Storage management: Previous backup files automatically removed")
+        print(f"   🛡️  Error handling: Enhanced with driver restart and thread management")
+        print(f"   🔄 Driver management: Automatic restart on connection/driver errors")
+        print(f"   🧵 Thread management: Periodic refresh to prevent thread consumption")
+        print(f"   💾 Backup management: Automatic cleanup to save storage space")
 
 # ===============================================
 # API SETUP AND ENDPOINTS FOR FLIPKART SCRAPER

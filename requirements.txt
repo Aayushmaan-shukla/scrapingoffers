@@ -4,3 +4,4 @@ selenium
 flask
 requests
 google-generativeai
+psutils
