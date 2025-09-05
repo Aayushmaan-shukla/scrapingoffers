@@ -17,20 +17,12 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, ElementClickInterceptedException
 import requests
 import random
-# Conditional import for resource module (Unix/Linux only)#################################################################################&&efjefj
+# Conditional import for resource module (Unix/Linux only)#################################################################################
 try:
     import resource
     RESOURCE_AVAILABLE = True
 except ImportError:
     RESOURCE_AVAILABLE = False
-
-# Import psutil for thread monitoring
-try:
-    import psutil
-    PSUTIL_AVAILABLE = True
-except ImportError:
-    PSUTIL_AVAILABLE = False
-    print("⚠️ psutil not available, thread monitoring will be limited")
 import google.generativeai as genai
 
 # ===============================================
@@ -329,40 +321,6 @@ DATA_CONSISTENCY_CONFIG = {
     ]
 }
 
-# Enhanced error detection configuration
-ERROR_DETECTION_CONFIG = {
-    'chrome_driver_errors': [
-        'chrome not reachable', 'session not created', 'invalid session id',
-        'no such window', 'stale element reference', 'timeout', 'connection refused',
-        'too many open files', 'errno 24', 'errno 111', 'max retries exceeded',
-        'newconnectionerror', 'connection broken', 'webdriver exception',
-        'selenium.common.exceptions', 'undetected_chromedriver'
-    ],
-    'http_connection_errors': [
-        'connection refused', 'connection aborted', 'connection reset',
-        'max retries exceeded', 'newconnectionerror', 'connection broken',
-        'timeout', 'unreachable', 'network is unreachable'
-    ],
-    'file_descriptor_errors': [
-        'too many open files', 'errno 24', 'resource temporarily unavailable'
-    ],
-    'session_errors': [
-        'session not created', 'invalid session id', 'no such window',
-        'stale element reference', 'chrome not reachable'
-    ],
-    'max_retry_errors': [
-        'max retries exceeded', 'retry', 'timeout', 'connection'
-    ]
-}
-
-# Thread management configuration
-THREAD_MANAGEMENT_CONFIG = {
-    'refresh_interval': 50,  # Refresh threads every N processed URLs
-    'max_thread_usage': 0.8,  # Maximum thread usage threshold (80%)
-    'cleanup_interval': 100,  # Cleanup resources every N processed URLs
-    'driver_restart_interval': 200,  # Restart driver every N processed URLs
-}
-
 # Configuration for CAPTCHA handling
 CAPTCHA_CONFIG = {
     'enabled': True,  # Set to False to disable CAPTCHA handling
@@ -408,80 +366,20 @@ def cleanup_resources():
     gc.collect()
     print("🧹 Garbage collection completed")
 
-def detect_error_type(error_message):
+def enhanced_cleanup_resources():
     """
-    Detect the type of error based on error message patterns.
-    
-    Args:
-        error_message: The error message string
-        
-    Returns:
-        dict: Error type classification
-    """
-    error_str = str(error_message).lower()
-    
-    return {
-        'is_chrome_driver_error': any(keyword in error_str for keyword in ERROR_DETECTION_CONFIG['chrome_driver_errors']),
-        'is_http_connection_error': any(keyword in error_str for keyword in ERROR_DETECTION_CONFIG['http_connection_errors']),
-        'is_file_descriptor_error': any(keyword in error_str for keyword in ERROR_DETECTION_CONFIG['file_descriptor_errors']),
-        'is_session_error': any(keyword in error_str for keyword in ERROR_DETECTION_CONFIG['session_errors']),
-        'is_max_retry_error': any(keyword in error_str for keyword in ERROR_DETECTION_CONFIG['max_retry_errors']),
-        'requires_driver_restart': any(keyword in error_str for keyword in ERROR_DETECTION_CONFIG['chrome_driver_errors'] + ERROR_DETECTION_CONFIG['session_errors']),
-        'requires_resource_cleanup': any(keyword in error_str for keyword in ERROR_DETECTION_CONFIG['file_descriptor_errors'])
-    }
-
-def restart_chrome_driver(driver, proxy=None, use_proxy=False):
-    """
-    Safely restart Chrome driver with proper cleanup.
-    
-    Args:
-        driver: Current Chrome driver instance
-        proxy: Proxy configuration dictionary
-        use_proxy: Whether to use proxy configuration
-        
-    Returns:
-        New Chrome driver instance
+    Enhanced resource cleanup with comprehensive memory and file handle management.
     """
     try:
-        # Safely quit the current driver
-        if driver:
-            try:
-                driver.quit()
-                print("🔄 Previous Chrome driver closed")
-                logging.info("🔄 Previous Chrome driver closed")
-            except Exception as e:
-                logging.warning(f"Error closing previous driver: {e}")
-        
-        # Clean up resources before creating new driver
-        cleanup_resources()
-        
-        # Wait a bit before creating new driver
-        time.sleep(3)
-        
-        # Create new driver
-        new_driver = create_chrome_driver(proxy=proxy, use_proxy=use_proxy)
-        
-        print("✅ Chrome driver restarted successfully")
-        logging.info("✅ Chrome driver restarted successfully")
-        
-        return new_driver
-        
-    except Exception as e:
-        logging.error(f"❌ Failed to restart Chrome driver: {e}")
-        print(f"❌ Failed to restart Chrome driver: {e}")
-        raise e
-
-def refresh_thread_resources():
-    """
-    Refresh thread resources to prevent thread consumption.
-    """
-    try:
-        # Force garbage collection
         import gc
-        gc.collect()
+        import threading
+        import os
+        
+        # Force garbage collection multiple times
+        for _ in range(3):
+            gc.collect()
         
         # Clean up any hanging threads
-        import threading
         for thread in threading.enumerate():
             if thread.is_alive() and thread.name != threading.current_thread().name:
                 if hasattr(thread, '_stop'):
@@ -490,60 +388,110 @@ def refresh_thread_resources():
                     except:
                         pass
         
-        print("🔄 Thread resources refreshed")
-        logging.info("🔄 Thread resources refreshed")
+        # Clear any cached data structures
+        if 'url_cache' in globals():
+            url_cache.clear()
+        
+        print("🧹 Enhanced resource cleanup completed")
+        logging.info("Enhanced resource cleanup completed")
         
     except Exception as e:
-        logging.warning(f"Error refreshing thread resources: {e}")
+        logging.warning(f"Error during enhanced resource cleanup: {e}")
+        print(f"⚠️ Error during enhanced resource cleanup: {e}")
 
-def check_thread_usage():
+def handle_chrome_driver_errors(driver, error, max_retries=3):
     """
-    Check current thread usage and return status.
+    Enhanced Chrome driver error handling with automatic restart and recovery.
     
+    Args:
+        driver: Current Chrome driver instance
+        error: The error that occurred
+        max_retries: Maximum number of retry attempts
+        
     Returns:
-        dict: Thread usage information
+        tuple: (new_driver, should_retry, error_info)
     """
-    try:
-        import threading
-        import os
+    error_str = str(error).lower()
+    error_info = detect_error_type(error)
+    
+    print(f"🔍 Analyzing Chrome driver error: {error}")
+    
+    # Determine if we should restart the driver
+    should_restart = (
+        error_info['requires_driver_restart'] or
+        'session not created' in error_str or
+        'chrome not reachable' in error_str or
+        'chrome crashed' in error_str or
+        'patch' in error_str or
+        'undetected_chromedriver' in error_str
+    )
+    
+    if should_restart:
+        print(f"🔄 Chrome driver restart required due to: {error_info['error_type']}")
         
-        if PSUTIL_AVAILABLE:
-            # Get current process
-            process = psutil.Process(os.getpid())
-            
-            # Get thread count
-            thread_count = process.num_threads()
-            
-            # Get system thread limit (approximate)
+        # Safely quit the current driver
+        if driver:
             try:
-                if hasattr(psutil, 'cpu_count'):
-                    max_threads = psutil.cpu_count() * 4  # Conservative estimate
-                else:
-                    max_threads = 100  # Fallback
-            except:
-                max_threads = 100
-        else:
-            # Fallback when psutil is not available
-            thread_count = len(threading.enumerate())
-            max_threads = 100  # Conservative estimate
+                driver.quit()
+                print("✅ Previous Chrome driver closed successfully")
+            except Exception as quit_error:
+                logging.warning(f"Error closing previous driver: {quit_error}")
         
-        thread_usage = thread_count / max_threads if max_threads > 0 else 0
+        # Clean up resources before creating new driver
+        enhanced_cleanup_resources()
         
-        return {
-            'thread_count': thread_count,
-            'max_threads': max_threads,
-            'usage_ratio': thread_usage,
-            'is_high_usage': thread_usage > THREAD_MANAGEMENT_CONFIG['max_thread_usage']
-        }
+        # Create new driver with enhanced error handling
+        try:
+            new_driver = create_chrome_driver(max_retries=max_retries)
+            print("✅ New Chrome driver created successfully")
+            return new_driver, True, error_info
+        except Exception as restart_error:
+            logging.error(f"Failed to restart Chrome driver: {restart_error}")
+            print(f"❌ Failed to restart Chrome driver: {restart_error}")
+            return None, False, error_info
+    
+    return driver, False, error_info
+
+def enhanced_retry_with_backoff(func, *args, max_retries=5, base_delay=1, **kwargs):
+    """
+    Enhanced retry mechanism with exponential backoff and jitter.
+    
+    Args:
+        func: Function to retry
+        *args: Function arguments
+        max_retries: Maximum number of retry attempts
+        base_delay: Base delay in seconds
+        **kwargs: Function keyword arguments
         
-    except Exception as e:
-        logging.warning(f"Error checking thread usage: {e}")
-        return {
-            'thread_count': 0,
-            'max_threads': 100,
-            'usage_ratio': 0,
-            'is_high_usage': False
-        }
+    Returns:
+        Function result or raises the last exception
+    """
+    import random
+    import time
+    
+    for attempt in range(max_retries):
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            if attempt == max_retries - 1:
+                raise e
+            
+            # Calculate delay with exponential backoff and jitter
+            delay = base_delay * (2 ** attempt) + random.uniform(0, 1)
+            delay = min(delay, 60)  # Cap at 60 seconds
+            
+            error_str = str(e).lower()
+            if any(keyword in error_str for keyword in ['connection', 'timeout', 'refused']):
+                print(f"🔄 Connection error, retrying in {delay:.1f}s (attempt {attempt + 1}/{max_retries})")
+            elif 'too many open files' in error_str:
+                print(f"🔄 File descriptor error, cleaning up and retrying in {delay:.1f}s")
+                enhanced_cleanup_resources()
+            else:
+                print(f"🔄 Generic error, retrying in {delay:.1f}s (attempt {attempt + 1}/{max_retries})")
+            
+            time.sleep(delay)
+    
+    return None
 
 # Use a local data directory by default; allow override via env var
 DATA_DIR = os.getenv("SCRAPED_OFFER_DATA_DIR", os.path.join(os.getcwd(), "data"))
@@ -2262,118 +2210,65 @@ class ComprehensiveAmazonExtractor:
 
 
 
-def create_chrome_driver(proxy=None, use_proxy=False, max_retries=3):
+def create_chrome_driver(proxy=None, use_proxy=False):
     """
     Create and configure a new Chrome driver session with optional proxy support.
-    Includes robust error handling and retry mechanism.
     
     Args:
         proxy: Proxy configuration dictionary
         use_proxy: Whether to use proxy configuration
-        max_retries: Maximum number of retry attempts for driver creation
     """
-    for attempt in range(max_retries):
+    options = uc.ChromeOptions()
+    # Use CHROME_BIN if explicitly provided; otherwise rely on system default
+    chrome_bin = os.getenv("CHROME_BIN")
+    if chrome_bin:
+        options.binary_location = chrome_bin
+    
+    print("🤖 Running in headless mode")
+    options.add_argument('--headless=new')  # Use new headless mode
+    options.add_argument('--no-sandbox')
+    options.add_argument('--disable-dev-shm-usage')
+    options.add_argument('--disable-gpu')
+    options.add_argument('--disable-web-security')
+    options.add_argument('--disable-features=VizDisplayCompositor')
+    options.add_argument('--window-size=1920,1080')
+    
+    # Additional options for better compatibility
+    options.add_argument('--disable-blink-features=AutomationControlled')
+    options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
+    
+    # Add proxy configuration if provided
+    if use_proxy and proxy:
         try:
-            options = uc.ChromeOptions()
-            # Use CHROME_BIN if explicitly provided; otherwise rely on system default
-            chrome_bin = os.getenv("CHROME_BIN")
-            if chrome_bin:
-                options.binary_location = chrome_bin
-            
-            print("🤖 Running in headless mode")
-            options.add_argument('--headless=new')  # Use new headless mode
-            options.add_argument('--no-sandbox')
-            options.add_argument('--disable-dev-shm-usage')
-            options.add_argument('--disable-gpu')
-            options.add_argument('--disable-web-security')
-            options.add_argument('--disable-features=VizDisplayCompositor')
-            options.add_argument('--window-size=1920,1080')
-            
-            # Additional options for better compatibility and stability
-            options.add_argument('--disable-blink-features=AutomationControlled')
-            options.add_argument('--disable-extensions')
-            options.add_argument('--disable-plugins')
-            options.add_argument('--disable-images')
-            options.add_argument('--disable-javascript')
-            options.add_argument('--disable-default-apps')
-            options.add_argument('--disable-sync')
-            options.add_argument('--disable-translate')
-            options.add_argument('--disable-background-timer-throttling')
-            options.add_argument('--disable-renderer-backgrounding')
-            options.add_argument('--disable-backgrounding-occluded-windows')
-            options.add_argument('--disable-ipc-flooding-protection')
-            options.add_argument('--max_old_space_size=4096')
-            options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
-            
-            # Add proxy configuration if provided
-            if use_proxy and proxy:
-                try:
-                    # Extract proxy details from the proxy dictionary
-                    if 'http' in proxy:
-                        proxy_url = proxy['http']
-                        # Parse proxy URL to extract host, port, username, password
-                        if '@' in proxy_url:
-                            auth_part, host_part = proxy_url.split('@')
-                            username, password = auth_part.replace('http://', '').split(':')
-                            host, port = host_part.split(':')
-                        else:
-                            host, port = proxy_url.replace('http://', '').split(':')
-                            username = password = None
-                        
-                        # Set proxy arguments
-                        if username and password:
-                            options.add_argument(f'--proxy-server={host}:{port}')
-                            # Note: Selenium doesn't support proxy authentication directly in options
-                            # We'll need to handle this differently or use a different approach
-                            logging.warning(f"⚠️ Proxy authentication not fully supported in current setup")
-                        else:
-                            options.add_argument(f'--proxy-server={host}:{port}')
-                        
-                        print(f"🔄 Using proxy: {host}:{port}")
-                        logging.info(f"🔄 Chrome driver configured with proxy: {host}:{port}")
-                        
-                except Exception as e:
-                    logging.error(f"❌ Error configuring proxy: {e}")
-                    print(f"❌ Proxy configuration failed: {e}")
-            
-            # Create driver with timeout
-            driver = uc.Chrome(options=options)
-            
-            # Test the driver by navigating to a simple page
-            driver.set_page_load_timeout(30)
-            driver.implicitly_wait(10)
-            
-            # Quick test to ensure driver is working
-            driver.get("about:blank")
-            
-            print(f"✅ Chrome driver created successfully (attempt {attempt + 1})")
-            logging.info(f"✅ Chrome driver created successfully (attempt {attempt + 1})")
-            return driver
-            
+            # Extract proxy details from the proxy dictionary
+            if 'http' in proxy:
+                proxy_url = proxy['http']
+                # Parse proxy URL to extract host, port, username, password
+                if '@' in proxy_url:
+                    auth_part, host_part = proxy_url.split('@')
+                    username, password = auth_part.replace('http://', '').split(':')
+                    host, port = host_part.split(':')
+                else:
+                    host, port = proxy_url.replace('http://', '').split(':')
+                    username = password = None
+                
+                # Set proxy arguments
+                if username and password:
+                    options.add_argument(f'--proxy-server={host}:{port}')
+                    # Note: Selenium doesn't support proxy authentication directly in options
+                    # We'll need to handle this differently or use a different approach
+                    logging.warning(f"⚠️ Proxy authentication not fully supported in current setup")
+                else:
+                    options.add_argument(f'--proxy-server={host}:{port}')
+                
+                print(f"🔄 Using proxy: {host}:{port}")
+                logging.info(f"🔄 Chrome driver configured with proxy: {host}:{port}")
+                
         except Exception as e:
-            error_str = str(e).lower()
-            logging.error(f"❌ Chrome driver creation failed (attempt {attempt + 1}/{max_retries}): {e}")
-            print(f"❌ Chrome driver creation failed (attempt {attempt + 1}/{max_retries}): {e}")
-            
-            # Check for specific error types that might benefit from different handling
-            if any(keyword in error_str for keyword in ['connection', 'timeout', 'refused', 'unreachable']):
-                print(f"   🔄 Connection-related error detected, waiting before retry...")
-                time.sleep(5)
-            elif 'too many open files' in error_str or 'errno 24' in error_str:
-                print(f"   🔄 File descriptor limit reached, cleaning up resources...")
-                cleanup_resources()
-                time.sleep(3)
-            elif 'session' in error_str or 'patch' in error_str:
-                print(f"   🔄 Session/patch error detected, waiting before retry...")
-                time.sleep(10)
-            else:
-                print(f"   🔄 Generic error, waiting before retry...")
-                time.sleep(3)
-            
-            if attempt == max_retries - 1:
-                logging.error(f"❌ Failed to create Chrome driver after {max_retries} attempts")
-                print(f"❌ Failed to create Chrome driver after {max_retries} attempts")
-                raise e
+            logging.error(f"❌ Error configuring proxy: {e}")
+            print(f"❌ Proxy configuration failed: {e}")
+    
+    return uc.Chrome(options=options)
 
 def process_comprehensive_amazon_store_links(input_file, output_file, start_idx=0, max_entries=None):
     """
@@ -2443,6 +2338,23 @@ def process_comprehensive_amazon_store_links(input_file, output_file, start_idx=
                 print(f"   📍 Location: {location_type}[{link_data['location_idx']}].store_links[{link_data['store_idx']}]")
                 print(f"   🛒 Path: {link_data['path'][:100]}...")
                 print(f"   🔧 Session: Fresh session for each link")
+                
+                # Enhanced thread management - refresh threads periodically
+                if (idx + 1) % 25 == 0:  # Every 25 links
+                    print(f"   🔄 Refreshing thread resources...")
+                    refresh_thread_resources()
+                    
+                    # Check thread usage and clean up if needed
+                    thread_info = check_thread_usage()
+                    if thread_info['is_high_usage']:
+                        print(f"   ⚠️  High thread usage detected: {thread_info['thread_count']}/{thread_info['max_threads']} ({thread_info['usage_ratio']:.1%})")
+                        enhanced_cleanup_resources()
+                
+                # Periodic resource cleanup every 50 links
+                if (idx + 1) % 50 == 0:
+                    print(f"   🧹 Performing periodic resource cleanup...")
+                    enhanced_cleanup_resources()
+                    manage_file_descriptors()
                 
                 amazon_url = store_link.get('url', '')
                 if not amazon_url:
@@ -2681,261 +2593,34 @@ def process_comprehensive_amazon_store_links(input_file, output_file, start_idx=
                 logging.error(f"Error processing link {idx + 1}: {e}")
                 print(f"   ❌ Error processing link: {e}")
                 
-                # Enhanced error detection using the new error detection system
-                error_info = detect_error_type(str(e))
+                # Check if this is a connection or "too many open files" error
+                error_str = str(e).lower()
+                is_connection_error = any(keyword in error_str for keyword in PROXY_CONFIG['connection_error_keywords'])
+                is_fd_error = 'too many open files' in error_str or 'errno 24' in error_str
                 
                 # Track persistent errors and pause if threshold exceeded
                 if not hasattr(process_comprehensive_amazon_store_links, '_persistent_error_count'):
                     process_comprehensive_amazon_store_links._persistent_error_count = 0  # type: ignore
-                
-                # Increment error count for critical errors
-                if (error_info['is_chrome_driver_error'] or error_info['is_http_connection_error'] or 
-                    error_info['is_file_descriptor_error'] or error_info['is_session_error']):
+                if is_connection_error or is_fd_error:
                     process_comprehensive_amazon_store_links._persistent_error_count += 1  # type: ignore
                 else:
                     process_comprehensive_amazon_store_links._persistent_error_count = 0  # type: ignore
                 
-                # Check if we need to pause due to persistent errors
                 if getattr(process_comprehensive_amazon_store_links, '_persistent_error_count', 0) >= 5:  # type: ignore
-                    print(f"   ⚠️  Too many persistent errors, saving progress and pausing...")
+                    # Save current progress and cache, then pause execution
                     save_progress_and_pause(output_file, data, url_cache)
                     return
                 
-                # Handle different types of errors with appropriate recovery strategies
-                if error_info['requires_driver_restart']:
-                    print(f"   🔄 Chrome driver error detected, restarting driver...")
-                    try:
-                        driver = restart_chrome_driver(driver)
-                        print(f"   ✅ Chrome driver restarted successfully")
-                        continue  # Retry the same link with new driver
-                    except Exception as restart_error:
-                        logging.error(f"Failed to restart Chrome driver: {restart_error}")
-                        print(f"   ❌ Failed to restart Chrome driver: {restart_error}")
-                
-                elif error_info['requires_resource_cleanup']:
-                    print(f"   🧹 File descriptor error detected, cleaning up resources...")
-                    cleanup_resources()
-                    time.sleep(5)  # Wait for resources to be freed
-                
-                elif error_info['is_http_connection_error'] and PROXY_CONFIG['enabled']:
-                    print(f"   🔄 HTTP connection error detected, attempting proxy rotation...")
+                if is_connection_error and PROXY_CONFIG['enabled']:
+                    print(f"   🔄 Connection error detected, attempting proxy rotation...")
+                    
+                    # Try to get a new proxy and recreate the driver
                     try:
                         # Close current driver to free up resources
                         try:
                             driver.quit()
                         except:
                             pass
-                        
-                        # Get next available proxy
-                        proxy = PROXY_MANAGER.get_next_proxy()
-                        if proxy:
-                            print(f"   🔄 Switching to proxy for retry...")
-                            driver = create_chrome_driver(proxy=proxy, use_proxy=True)
-                            
-                            # Wait a bit before retrying
-                            time.sleep(5)
-                            
-                            # Try to process the same link again
-                            try:
-                                print(f"   🔄 Retrying with proxy...")
-                                
-                                # Extract price and availability information with proxy
-                                price_availability_info = extract_price_and_availability(driver, amazon_url)
-                                
-                                # Set in_stock status based on extracted information
-                                store_link['in_stock'] = price_availability_info.get('in_stock', True)
-                                
-                                # Add product name from URL scraping at the same level as url
-                                if price_availability_info.get('product_name_via_url'):
-                                    store_link['product_name_via_url'] = price_availability_info['product_name_via_url']
-                                    print(f"   📝 Product name: {price_availability_info['product_name_via_url'][:100]}...")
-                                
-                                # Only update price if in_stock is true, otherwise keep existing price
-                                if store_link['in_stock']:
-                                    if price_availability_info['price'] and price_availability_info['price'] not in ["Price not found", "Error extracting price", "Currently unavailable"]:
-                                        store_link['price'] = price_availability_info['price']
-                                    elif 'price' not in store_link or not store_link['price']:
-                                        store_link['price'] = "Price not available"
-                                
-                                print(f"   💰 Price: {store_link['price']}")
-                                print(f"   📦 Availability: {price_availability_info['availability']}")
-                                print(f"   📋 In Stock: {store_link['in_stock']}")
-
-                                # Check for inconsistent data: Price not available but in_stock is true (proxy retry)
-                                if DATA_CONSISTENCY_CONFIG['enabled'] and DATA_CONSISTENCY_CONFIG['retry_on_inconsistent_data']:
-                                    availability_text = price_availability_info.get('availability', '').lower()
-                                    is_price_unavailable = any(keyword in availability_text for keyword in DATA_CONSISTENCY_CONFIG['inconsistent_data_keywords'])
-                                    
-                                    if is_price_unavailable and store_link['in_stock']:
-                                            print(f"   ⚠️  Inconsistent data detected in proxy retry: Price unavailable but in_stock=True")
-                                            print(f"   🔄 Retrying link again with page refresh...")
-                                            
-                                            # Take a screenshot before retry for debugging
-                                            take_screenshot(driver, amazon_url, "inconsistent_data_proxy_retry_before", "_proxy_before_retry")
-                                            
-                                            # Wait a bit before retry
-                                            time.sleep(3)
-                                            
-                                            try:
-                                                # Refresh the page and retry extraction
-                                                driver.refresh()
-                                                time.sleep(2)  # Wait for page to load
-                                                
-                                                # Retry price and availability extraction
-                                                retry_price_availability_info = extract_price_and_availability(driver, amazon_url)
-                                                
-                                                # Update with retry results
-                                                store_link['in_stock'] = retry_price_availability_info.get('in_stock', True)
-                                                
-                                                if retry_price_availability_info.get('product_name_via_url'):
-                                                    store_link['product_name_via_url'] = retry_price_availability_info['product_name_via_url']
-                                                    print(f"   📝 Product name (proxy retry): {retry_price_availability_info['product_name_via_url'][:100]}...")
-                                                
-                                                # Update price with retry results
-                                                if store_link['in_stock']:
-                                                    if retry_price_availability_info['price'] and retry_price_availability_info['price'] not in ["Price not found", "Error extracting price", "Currently unavailable"]:
-                                                        store_link['price'] = retry_price_availability_info['price']
-                                                    elif 'price' not in store_link or not store_link['price']:
-                                                        store_link['price'] = "Price not available"
-                                                
-                                                print(f"   💰 Price (after proxy retry): {store_link['price']}")
-                                                print(f"   📦 Availability (after proxy retry): {retry_price_availability_info['availability']}")
-                                                print(f"   📋 In Stock (after proxy retry): {store_link['in_stock']}")
-                                                
-                                                # Take screenshot after retry for comparison
-                                                take_screenshot(driver, amazon_url, "inconsistent_data_proxy_retry_after", "_proxy_after_retry")
-                                                
-                                                print(f"   ✅ Proxy retry completed successfully")
-                                                
-                                            except Exception as retry_error:
-                                                logging.error(f"Proxy retry failed for inconsistent data on {amazon_url}: {retry_error}")
-                                                print(f"   ❌ Proxy retry failed: {retry_error}")
-                                                # Continue with original data if retry fails
-
-                                # Record the final visited platform URL
-                                try:
-                                    store_link['platform_url'] = driver.current_url
-                                except Exception:
-                                    store_link['platform_url'] = store_link.get('url', '')
-                                
-                                # Try to capture With Exchange price if present
-                                try:
-                                    base_price_amount = extract_price_amount(store_link.get('price', ''))
-                                    with_exchange_price = extract_with_exchange_price_from_page(driver, base_price_amount)
-                                    if with_exchange_price:
-                                        store_link['with_exchange_price'] = with_exchange_price
-                                        print(f"   🔄 With Exchange price: {with_exchange_price}")
-                                        logging.info(f"Set with_exchange_price for {amazon_url}: {with_exchange_price}")
-                                    else:
-                                        logging.info(f"No with_exchange_price found for {amazon_url}")
-                                except Exception as e:
-                                    logging.debug(f"Error setting with_exchange_price for {amazon_url}: {e}")
-                                
-                                # Get bank offers and other offers
-                                offers = get_bank_offers(driver, amazon_url)
-                                
-                                if offers:
-                                    # Get product price for ranking
-                                    price_str = store_link.get('price', '₹0')
-                                    product_price = extract_price_amount(price_str)
-                                    
-                                    # Rank the offers
-                                    ranked_offers = analyzer.rank_offers(offers, product_price)
-                                    
-                                    # Filter out unwanted offer types
-                                    filtered_offers = []
-                                    removed_count = 0
-                                    
-                                    for offer in ranked_offers:
-                                        offer_type = offer.get('offer_type', '').lower()
-                                        if offer_type in ['cashback', 'no cost emi', 'partner offers']:
-                                            removed_count += 1
-                                            logging.info(f"Removing offer type '{offer_type}' for {amazon_url}")
-                                        else:
-                                            filtered_offers.append(offer)
-                                    
-                                    # Initialize Gemini API after filtering offers
-                                    if filtered_offers:
-                                        print(f"   🤖 Initializing Gemini API for AI analysis of {len(filtered_offers)} filtered offers...")
-                                        if initialize_gemini_api():
-                                            print(f"   ✅ Gemini API initialized successfully")
-                                        else:
-                                            print(f"   ⚠️  Gemini API initialization failed, continuing without AI analysis")
-                                    
-                                    store_link['ranked_offers'] = filtered_offers
-                                    
-                                    if removed_count > 0:
-                                        print(f"   🗑️  Removed {removed_count} unwanted offers (Cashback/EMI/Partner)")
-                                    
-                                    print(f"   ✅ Found and ranked {len(offers)} offers, kept {len(filtered_offers)} after filtering")
-                                    
-                                    # Log the ranking summary for remaining offers
-                                    for i, offer in enumerate(filtered_offers[:3], 1):
-                                        score_display = offer['score'] if offer['score'] is not None else 'N/A'
-                                        print(f"   🏆 Rank {i}: {offer['title']} (Score: {score_display}, Amount: ₹{offer['amount']})")
-                                else:
-                                    print(f"   ❌ No offers found")
-                                    store_link['ranked_offers'] = []
-                                    
-                                    # Take screenshot when no offers are found
-                                    take_screenshot(driver, amazon_url, "offers_not_found", "_no_offers")
-                                
-                                # Add URL to visited list after successful processing
-                                append_visited_url(amazon_url, visited_urls_file)
-                                visited_urls.add(amazon_url)
-                                
-                                print(f"   ✅ Successfully processed with proxy after connection error!")
-                                continue  # Skip to next link since we successfully processed this one
-                                
-                            except Exception as retry_error:
-                                logging.error(f"Proxy retry failed for link {idx + 1}: {retry_error}")
-                                print(f"   ❌ Proxy retry failed: {retry_error}")
-                                
-                                # Mark proxy as failed
-                                if proxy:
-                                    PROXY_MANAGER.mark_proxy_failed(proxy)
-                                
-                                # Create a new driver without proxy for next iteration
-                                try:
-                                    driver.quit()
-                                except:
-                                    pass
-                                driver = create_chrome_driver()
-                                
-                        else:
-                            print(f"   ⚠️  No more proxies available, continuing without proxy...")
-                            driver = create_chrome_driver()
-                    except Exception as proxy_error:
-                        logging.error(f"Error during proxy rotation: {proxy_error}")
-                        print(f"   ❌ Proxy rotation failed: {proxy_error}")
-                        driver = create_chrome_driver()
-                
-                # Thread management - refresh threads periodically
-                if (idx + 1) % THREAD_MANAGEMENT_CONFIG['refresh_interval'] == 0:
-                    print(f"   🔄 Refreshing thread resources...")
-                    refresh_thread_resources()
-                    
-                    # Check thread usage
-                    thread_info = check_thread_usage()
-                    if thread_info['is_high_usage']:
-                        print(f"   ⚠️  High thread usage detected: {thread_info['thread_count']}/{thread_info['max_threads']} ({thread_info['usage_ratio']:.1%})")
-                        cleanup_resources()
-                
-                # Driver restart for stability
-                if (idx + 1) % THREAD_MANAGEMENT_CONFIG['driver_restart_interval'] == 0:
-                    print(f"   🔄 Periodic driver restart for stability...")
-                    try:
-                        driver = restart_chrome_driver(driver)
-                        print(f"   ✅ Periodic driver restart completed")
-                    except Exception as restart_error:
-                        logging.error(f"Periodic driver restart failed: {restart_error}")
-                        print(f"   ❌ Periodic driver restart failed: {restart_error}")
-                
-                # Resource cleanup
-                if (idx + 1) % THREAD_MANAGEMENT_CONFIG['cleanup_interval'] == 0:
-                    print(f"   🧹 Periodic resource cleanup...")
-                    cleanup_resources()
-                    save_url_cache(url_cache)
                         
                         # Get next available proxy
                         proxy = PROXY_MANAGER.get_next_proxy()
