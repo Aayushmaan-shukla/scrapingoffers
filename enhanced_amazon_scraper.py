@@ -17,7 +17,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, ElementClickInterceptedException
 import requests
 import random
-# Conditional import for resource module (Unix/Linux only)#################################################################################&&
+# Conditional import for resource module (Unix/Linux only)#################################################################################&&efjefj
 try:
     import resource
     RESOURCE_AVAILABLE = True
