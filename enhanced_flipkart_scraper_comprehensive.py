@@ -279,7 +279,7 @@ class BackupManager:
             
             print(f"   🔍 Found {len(backup_files)} backup files")
             
- all_data_flipkart_20250905_142008.json.progress_20250905_212054.json            if len(backup_files) > self.max_backups:
+            if len(backup_files) > self.max_backups:
                 # Sort by modification time (oldest first)
                 backup_files.sort(key=os.path.getmtime)
                 
