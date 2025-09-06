@@ -1,18 +1,15 @@
 #!/usr/bin/env python3
 """
-COMPREHENSIVE Enhanced Croma Bank Offer Scraper - FULLY AUTONOMOUS
-===================================================================
-- Reaches ALL 3 nested locations for Croma links:
-  1. scraped_data.variants[].store_links[]
-  2. scraped_data.all_matching_products[].store_links[]  
-  3. scraped_data.unmapped[].store_links[]
-- Uses comprehensive_amazon_offers.json as input
+ENHANCED Croma Bank Offer Scraper with Advanced Features
+=========================================================
+- URL-based persistent caching system (croma_cache.json)
+- Exchange price extraction and terminal display
+- Discontinued product detection and automatic skipping
+- Single browser session with automatic renewal every 100 sessions
+- Reaches ALL 3 nested locations for Croma links
 - Completely isolates Amazon data (no changes to Amazon offers)
-- FULLY SELF-CONTAINED: No external dependencies
-- URL tracking with visited_urls_croma.txt
-- Stock status detection via span.amount#pdp-product-price
-- Fresh browser session for each link (headless mode)
-- Backup every 100 URLs for better performance
+- BeautifulSoup deprecation warning fixes
+- Comprehensive error handling and statistics
 - No user interaction required
 """
 
@@ -39,6 +36,348 @@ logging.basicConfig(
     format='%(asctime)s %(levelname)s: %(message)s',
     level=logging.INFO
 )
+
+# ===============================================
+# URL-BASED CACHING SYSTEM
+# ===============================================
+
+def load_cache(cache_file="croma_cache.json"):
+    """Load the persistent URL-based cache from disk."""
+    try:
+        if os.path.exists(cache_file):
+            with open(cache_file, 'r', encoding='utf-8') as f:
+                cache = json.load(f)
+            print(f"📋 Loaded cache with {len(cache)} entries from {cache_file}")
+            return cache
+        else:
+            print(f"📝 Creating new cache file: {cache_file}")
+            return {}
+    except Exception as e:
+        print(f"⚠️  Error loading cache: {e}")
+        return {}
+
+def save_cache(cache, cache_file="croma_cache.json"):
+    """Save the cache to disk."""
+    try:
+        with open(cache_file, 'w', encoding='utf-8') as f:
+            json.dump(cache, f, indent=2, ensure_ascii=False)
+        print(f"💾 Cache saved with {len(cache)} entries to {cache_file}")
+    except Exception as e:
+        print(f"⚠️  Error saving cache: {e}")
+
+def is_url_cached(url, cache):
+    """Check if URL is already in cache."""
+    return url in cache
+
+def add_to_cache(url, data, cache):
+    """Add scraped data to cache."""
+    cache[url] = {
+        'data': data,
+        'timestamp': datetime.now().isoformat(),
+        'scraped_at': time.time()
+    }
+    return cache
+
+# ===============================================
+# ROBUST DRIVER MANAGER WITH AUTO-RENEWAL
+# ===============================================
+
+class RobustDriverManager:
+    """Manages Chrome driver with automatic renewal every 100 sessions."""
+    
+    def __init__(self):
+        self.driver = None
+        self.session_count = 0
+        self.max_sessions = 100
+        self.create_new_driver()
+    
+    def create_new_driver(self):
+        """Create a fresh Chrome driver session with version compatibility handling."""
+        if self.driver:
+            try:
+                self.driver.quit()
+                print(f"🔄 Closed previous Chrome session")
+            except Exception as e:
+                print(f"⚠️  Error closing previous session: {e}")
+        
+        print(f"🤖 Creating new Chrome session (Session count will reset to 0)")
+        print(f"🔍 Detected Chrome version mismatch - using compatible configuration")
+        
+        # Multiple fallback strategies for Chrome version compatibility
+        driver_created = False
+        
+        # Strategy 1: Use version-specific configuration for Chrome 139
+        try:
+            print(f"🔧 Strategy 1: Using Chrome 139-compatible configuration...")
+            options = uc.ChromeOptions()
+            
+            # Chrome 139-specific arguments
+            options.add_argument('--headless=new')
+            options.add_argument('--no-sandbox')
+            options.add_argument('--disable-dev-shm-usage')
+            options.add_argument('--disable-gpu')
+            options.add_argument('--window-size=1920,1080')
+            options.add_argument('--disable-extensions')
+            options.add_argument('--disable-plugins')
+            options.add_argument('--disable-images')
+            options.add_argument('--disable-blink-features=AutomationControlled')
+            options.add_argument('--disable-web-security')
+            options.add_argument('--allow-running-insecure-content')
+            options.add_argument('--disable-features=VizDisplayCompositor')
+            
+            # Updated user agent for Chrome 139
+            options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.7258.155 Safari/537.36')
+            
+            # Force version compatibility
+            self.driver = uc.Chrome(options=options, version_main=139)
+            self.driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+            self.session_count = 0
+            driver_created = True
+            print(f"✅ Strategy 1 SUCCESS: Chrome 139 session created successfully")
+            
+        except Exception as e:
+            print(f"❌ Strategy 1 FAILED: {e}")
+        
+        # Strategy 2: Auto-detect and download compatible driver
+        if not driver_created:
+            try:
+                print(f"🔧 Strategy 2: Auto-detecting compatible ChromeDriver...")
+                options = uc.ChromeOptions()
+                options.add_argument('--headless=new')
+                options.add_argument('--no-sandbox')
+                options.add_argument('--disable-dev-shm-usage')
+                options.add_argument('--disable-gpu')
+                options.add_argument('--window-size=1920,1080')
+                options.add_argument('--disable-extensions')
+                options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.7258.155 Safari/537.36')
+                
+                # Let undetected-chromedriver auto-download compatible version
+                self.driver = uc.Chrome(options=options)
+                self.driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+                self.session_count = 0
+                driver_created = True
+                print(f"✅ Strategy 2 SUCCESS: Auto-detected compatible driver")
+                
+            except Exception as e:
+                print(f"❌ Strategy 2 FAILED: {e}")
+        
+        # Strategy 3: Minimal configuration fallback
+        if not driver_created:
+            try:
+                print(f"🔧 Strategy 3: Using minimal configuration...")
+                options = uc.ChromeOptions()
+                options.add_argument('--headless')
+                options.add_argument('--no-sandbox')
+                options.add_argument('--disable-dev-shm-usage')
+                
+                self.driver = uc.Chrome(options=options)
+                self.session_count = 0
+                driver_created = True
+                print(f"✅ Strategy 3 SUCCESS: Minimal configuration working")
+                
+            except Exception as e:
+                print(f"❌ Strategy 3 FAILED: {e}")
+        
+        # Strategy 4: Force driver path and binary path
+        if not driver_created:
+            try:
+                print(f"🔧 Strategy 4: Trying with explicit paths...")
+                import subprocess
+                import os
+                
+                # Try to find Chrome executable
+                possible_chrome_paths = [
+                    r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+                    r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+                    r"C:\Users\{}\AppData\Local\Google\Chrome\Application\chrome.exe".format(os.getenv('USERNAME')),
+                ]
+                
+                chrome_path = None
+                for path in possible_chrome_paths:
+                    if os.path.exists(path):
+                        chrome_path = path
+                        break
+                
+                if chrome_path:
+                    print(f"🔍 Found Chrome at: {chrome_path}")
+                    options = uc.ChromeOptions()
+                    options.binary_location = chrome_path
+                    options.add_argument('--headless')
+                    options.add_argument('--no-sandbox')
+                    options.add_argument('--disable-dev-shm-usage')
+                    
+                    self.driver = uc.Chrome(options=options)
+                    self.session_count = 0
+                    driver_created = True
+                    print(f"✅ Strategy 4 SUCCESS: Explicit path working")
+                else:
+                    print(f"❌ Strategy 4: No Chrome executable found")
+                
+            except Exception as e:
+                print(f"❌ Strategy 4 FAILED: {e}")
+        
+        if not driver_created:
+            error_msg = """
+❌ CRITICAL ERROR: Could not create Chrome driver with any strategy!
+
+CHROME VERSION COMPATIBILITY ISSUE DETECTED:
+- Your Chrome version: 139.0.7258.155
+- ChromeDriver expects: Chrome 140
+
+SOLUTIONS TO TRY:
+1. Update Google Chrome to version 140 or later
+2. Downgrade ChromeDriver to support Chrome 139
+3. Use --version-main=139 parameter (attempted but failed)
+
+Please update your Chrome browser or install a compatible ChromeDriver version.
+            """
+            print(error_msg)
+            raise Exception("Chrome driver version compatibility issue - see solutions above")
+    
+    def get_driver(self):
+        """Get current driver, renewing if necessary."""
+        if self.session_count >= self.max_sessions:
+            print(f"🔄 Reached {self.max_sessions} sessions, renewing Chrome driver...")
+            self.create_new_driver()
+        
+        self.session_count += 1
+        return self.driver
+    
+    def close(self):
+        """Close the driver."""
+        if self.driver:
+            try:
+                self.driver.quit()
+                print(f"🔄 Chrome driver closed successfully")
+            except Exception as e:
+                print(f"⚠️  Error closing driver: {e}")
+
+# ===============================================
+# ENHANCED STOCK AND DISCONTINUED PRODUCT DETECTION
+# ===============================================
+
+def check_discontinued_product(driver, url):
+    """
+    Check if product is discontinued by looking for the specific message:
+    'This item has been discontinued'
+    """
+    try:
+        soup = BeautifulSoup(driver.page_source, 'html.parser')
+        
+        # Look for discontinued message in various possible locations
+        discontinued_indicators = [
+            "This item has been discontinued",
+            "Product discontinued",
+            "item has been discontinued",
+            "product is discontinued",
+            "no longer available"
+        ]
+        
+        page_text = soup.get_text().lower()
+        for indicator in discontinued_indicators:
+            if indicator.lower() in page_text:
+                print(f"❌ Product discontinued: {indicator}")
+                return True
+        
+        return False
+    except Exception as e:
+        logging.warning(f"Error checking discontinued status for {url}: {e}")
+        return False
+
+def extract_exchange_price(driver, url):
+    """
+    Extract exchange price from HTML element with multiple strategies:
+    1. <div class="with-Exchange-text"><span class="exchange-text">up to ₹62,466.5 off</span></div>
+    2. Text patterns like "With Exchange up to ₹10,619.9 off"
+    3. Alternative exchange price indicators
+    """
+    try:
+        soup = BeautifulSoup(driver.page_source, 'html.parser')
+        
+        # Strategy 1: Primary exchange price element (original method)
+        exchange_div = soup.find('div', class_='with-Exchange-text')
+        if exchange_div:
+            exchange_span = exchange_div.find('span', class_='exchange-text')
+            if exchange_span:
+                exchange_text = exchange_span.get_text(strip=True)
+                print(f"💱 Exchange Price Found (Method 1): {exchange_text}")
+                logging.info(f"Exchange price extracted via primary method: {exchange_text}")
+                return exchange_text
+        
+        # Strategy 2: Search for "With Exchange" text patterns in the entire page
+        page_text = soup.get_text()
+        exchange_patterns = [
+            r'With Exchange up to ₹([\d,]+\.?\d*)\s*off',
+            r'with exchange up to ₹([\d,]+\.?\d*)\s*off',
+            r'Exchange.*?up to ₹([\d,]+\.?\d*)\s*off',
+            r'exchange.*?₹([\d,]+\.?\d*)\s*off'
+        ]
+        
+        for pattern in exchange_patterns:
+            match = re.search(pattern, page_text, re.IGNORECASE)
+            if match:
+                amount = match.group(1).replace(',', '')
+                exchange_text = f"up to ₹{amount} off"
+                print(f"💱 Exchange Price Found (Method 2): {exchange_text}")
+                logging.info(f"Exchange price extracted via text pattern: {exchange_text}")
+                return exchange_text
+        
+        # Strategy 3: Look for exchange-related elements with different class names
+        exchange_elements = soup.find_all(['div', 'span', 'p'], 
+                                        string=re.compile(r'.*exchange.*₹.*off.*', re.IGNORECASE))
+        
+        for element in exchange_elements:
+            text = element.get_text(strip=True)
+            if 'exchange' in text.lower() and '₹' in text and 'off' in text.lower():
+                print(f"💱 Exchange Price Found (Method 3): {text}")
+                logging.info(f"Exchange price extracted via element search: {text}")
+                return text
+        
+        # Strategy 4: Search for exchange price in specific Croma price sections
+        price_sections = soup.find_all(['div', 'section'], class_=re.compile(r'.*price.*|.*offer.*|.*exchange.*', re.IGNORECASE))
+        for section in price_sections:
+            section_text = section.get_text()
+            if 'exchange' in section_text.lower() and '₹' in section_text:
+                # Extract the exchange price line
+                lines = section_text.split('\n')
+                for line in lines:
+                    if 'exchange' in line.lower() and '₹' in line and 'off' in line.lower():
+                        clean_line = ' '.join(line.strip().split())
+                        print(f"💱 Exchange Price Found (Method 4): {clean_line}")
+                        logging.info(f"Exchange price extracted via price section: {clean_line}")
+                        return clean_line
+        
+        # Strategy 5: Look for data attributes or hidden text containing exchange info
+        exchange_attrs = soup.find_all(attrs={'data-exchange': True}) + \
+                        soup.find_all(attrs={'data-offer': True})
+        
+        for attr_element in exchange_attrs:
+            for attr_name, attr_value in attr_element.attrs.items():
+                if 'exchange' in attr_name.lower() and isinstance(attr_value, str):
+                    if '₹' in attr_value:
+                        print(f"💱 Exchange Price Found (Method 5): {attr_value}")
+                        logging.info(f"Exchange price extracted via attributes: {attr_value}")
+                        return attr_value
+        
+        # Log detailed debugging info when no exchange price found
+        logging.warning(f"No exchange price found for {url} - Debug info:")
+        logging.warning(f"  - with-Exchange-text divs: {len(soup.find_all('div', class_='with-Exchange-text'))}")
+        logging.warning(f"  - exchange-text spans: {len(soup.find_all('span', class_='exchange-text'))}")
+        logging.warning(f"  - 'exchange' text occurrences: {page_text.lower().count('exchange')}")
+        logging.warning(f"  - '₹' text occurrences: {page_text.count('₹')}")
+        
+        # Sample page text for debugging (first 1000 chars)
+        sample_text = page_text[:1000].replace('\n', ' ').replace('\t', ' ')
+        sample_text = ' '.join(sample_text.split())  # Clean whitespace
+        logging.warning(f"  - Page text sample: {sample_text}")
+        
+        print(f"💱 Exchange Price: Not found (checked 5 methods)")
+        return None
+        
+    except Exception as e:
+        logging.warning(f"Error extracting exchange price for {url}: {e}")
+        print(f"💱 Exchange Price: Error during extraction")
+        return None
 
 # ===============================================
 # URL TRACKING FUNCTIONALITY
@@ -101,6 +440,16 @@ def extract_croma_stock_status(driver, url):
     try:
         logging.info(f"Checking stock status for: {url}")
         
+        # First check if product is discontinued
+        if check_discontinued_product(driver, url):
+            return {
+                'in_stock': False,
+                'discontinued': True,
+                'price_found': None,
+                'exchange_price': None,
+                'status_details': "Product discontinued - skipping"
+            }
+        
         # Get page soup for element checking
         soup = BeautifulSoup(driver.page_source, 'html.parser')
         
@@ -111,13 +460,19 @@ def extract_croma_stock_status(driver, url):
             'data-testid': 'new-price'
         })
         
+        # Extract exchange price
+        exchange_price = extract_exchange_price(driver, url)
+        
         if price_element:
             # Price element found - product is in stock
             price_text = price_element.get_text(strip=True)
             logging.info(f"Price element found: {price_text} - Product in stock")
+            
             return {
                 'in_stock': True,
+                'discontinued': False,
                 'price_found': price_text,
+                'exchange_price': exchange_price,
                 'status_details': f"Price element found: {price_text}"
             }
         else:
@@ -125,7 +480,9 @@ def extract_croma_stock_status(driver, url):
             logging.info(f"Price element not found - Product out of stock")
             return {
                 'in_stock': False,
+                'discontinued': False,
                 'price_found': None,
+                'exchange_price': exchange_price,
                 'status_details': "Price element (span.amount#pdp-product-price) not found"
             }
     
@@ -133,7 +490,9 @@ def extract_croma_stock_status(driver, url):
         logging.error(f"Error checking stock status for {url}: {e}")
         return {
             'in_stock': False,
+            'discontinued': False,
             'price_found': None,
+            'exchange_price': None,
             'status_details': f"Error checking stock: {e}"
         }
 
@@ -505,15 +864,6 @@ def get_croma_offers(driver, url, max_retries=2):
 
             soup = BeautifulSoup(driver.page_source, 'html.parser')
             
-            # Debug: Save page source for troubleshooting on server
-            debug_filename = f"debug_croma_page_{int(time.time())}.html"
-            try:
-                with open(debug_filename, 'w', encoding='utf-8') as f:
-                    f.write(driver.page_source)
-                logging.info(f"Saved page source to {debug_filename} for debugging")
-            except Exception as e:
-                logging.warning(f"Could not save debug page source: {e}")
-            
             # Debug: Check for key elements existence with detailed analysis
             offer_containers = soup.select("div.offer-container")
             offer_sections = soup.select("div.offer-section-pdp")
@@ -522,8 +872,8 @@ def get_croma_offers(driver, url, max_retries=2):
             all_swiper_slides = soup.select("div.swiper-slide")
             
             # Check for offer-related text content
-            offer_text_elements = soup.find_all(text=re.compile(r'(discount|offer|bank|cashback|emi|instant)', re.I))
-            bank_offer_texts = soup.find_all(text=re.compile(r'bank.*offer', re.I))
+            offer_text_elements = soup.find_all(string=re.compile(r'(discount|offer|bank|cashback|emi|instant)', re.I))
+            bank_offer_texts = soup.find_all(string=re.compile(r'bank.*offer', re.I))
             
             logging.info(f"=== DETAILED OFFER ELEMENTS ANALYSIS ===")
             logging.info(f"Page URL: {driver.current_url}")
@@ -635,7 +985,7 @@ def get_croma_offers(driver, url, max_retries=2):
             if not offer_wrappers:
                 logging.info(f"STRATEGY 5: Testing text-based search")
                 # Look for different text patterns that might indicate offers
-                potential_offer_elements = soup.find_all(text=re.compile(r'(discount|offer|bank|cashback|emi)', re.I))
+                potential_offer_elements = soup.find_all(string=re.compile(r'(discount|offer|bank|cashback|emi)', re.I))
                 logging.info(f"Strategy 5: Found {len(potential_offer_elements)} potential offer text elements")
                 
                 # Try to find parent containers of offer texts
@@ -692,7 +1042,7 @@ def get_croma_offers(driver, url, max_retries=2):
                     
                     # Alternative extraction methods for Ubuntu server compatibility
                     # Method 1: Look for any span with offer-related text
-                    alt_desc_tags = wrapper.find_all('span', text=re.compile(r'.*(discount|offer|bank|cashback|emi).*', re.I))
+                    alt_desc_tags = wrapper.find_all('span', string=re.compile(r'.*(discount|offer|bank|cashback|emi).*', re.I))
                     logging.info(f"  Alternative method 1: Found {len(alt_desc_tags)} spans with offer text")
                     if alt_desc_tags:
                         description = alt_desc_tags[0].get_text(strip=True)
@@ -781,108 +1131,6 @@ def get_croma_offers(driver, url, max_retries=2):
                 return []
     
     return []
-
-# ===============================================
-# BROWSER SESSION MANAGEMENT
-# ===============================================
-
-def create_chrome_driver():
-    """Create and configure a new Chrome driver session for Croma scraping - Google Chrome only."""
-    print("🤖 Creating fresh Google Chrome session (NOT Chromium) optimized for Ubuntu Server with Chrome 139.0.7258.66")
-    
-    options = uc.ChromeOptions()
-    
-    # Force use of Google Chrome instead of Chromium
-    options.binary_location = '/usr/bin/google-chrome'  # Standard Google Chrome path
-    
-    # Ubuntu Server specific configurations for Google Chrome
-    options.add_argument('--headless=new')
-    options.add_argument('--no-sandbox')
-    options.add_argument('--disable-dev-shm-usage')
-    options.add_argument('--disable-gpu')
-    options.add_argument('--disable-software-rasterizer')
-    options.add_argument('--disable-background-timer-throttling')
-    options.add_argument('--disable-backgrounding-occluded-windows')
-    options.add_argument('--disable-renderer-backgrounding')
-    options.add_argument('--disable-web-security')
-    options.add_argument('--disable-features=VizDisplayCompositor,TranslateUI')
-    options.add_argument('--disable-ipc-flooding-protection')
-    
-    # Enhanced for server environments
-    options.add_argument('--window-size=1920,1080')
-    options.add_argument('--start-maximized')
-    options.add_argument('--disable-extensions')
-    options.add_argument('--disable-plugins')
-    options.add_argument('--disable-images')  # Speed up loading but keep JS for offers
-    options.add_argument('--disable-javascript-harmony-shipping')
-    options.add_argument('--disable-background-networking')
-    options.add_argument('--disable-default-apps')
-    options.add_argument('--disable-sync')
-    
-    # Anti-detection for Google Chrome 139.0.7258.66
-    options.add_argument('--disable-blink-features=AutomationControlled')
-
-    # Remove deprecated/unsupported experimental options that cause failures on newer Chrome
-    # (e.g., excludeSwitches, useAutomationExtension)
-    
-    # Updated user agent for Google Chrome 139.0.7258.66 compatibility
-    options.add_argument('--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.7258.66 Safari/537.36')
-    
-    # Memory management for server
-    options.add_argument('--memory-pressure-off')
-    options.add_argument('--max_old_space_size=4096')
-    
-    # Enable better JavaScript handling for dynamic content
-    options.add_argument('--enable-javascript')
-    options.add_argument('--allow-running-insecure-content')
-    
-    try:
-        print("🔍 Attempting to use Google Chrome at /usr/bin/google-chrome")
-        driver = uc.Chrome(options=options)
-        # Additional anti-detection
-        driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
-        print("✅ Successfully created Google Chrome driver")
-        return driver
-    except Exception as e:
-        print(f"❌ Error creating Google Chrome driver: {e}")
-        print("🔄 Trying alternative Google Chrome paths...")
-        
-        # Try alternative Google Chrome paths
-        chrome_paths = [
-            '/usr/bin/google-chrome-stable',
-            '/opt/google/chrome/google-chrome',
-            '/usr/bin/chromium-browser',  # Last resort fallback
-            None  # Let undetected-chromedriver find it
-        ]
-        
-        for chrome_path in chrome_paths:
-            try:
-                options = uc.ChromeOptions()
-                if chrome_path and chrome_path != '/usr/bin/chromium-browser':
-                    options.binary_location = chrome_path
-                    print(f"🔍 Trying Chrome at: {chrome_path}")
-                elif chrome_path == '/usr/bin/chromium-browser':
-                    print(f"⚠️  Falling back to Chromium (not ideal): {chrome_path}")
-                else:
-                    print(f"🔍 Letting undetected-chromedriver auto-detect Chrome location")
-                
-                # Basic configuration for fallback
-                options.add_argument('--headless')
-                options.add_argument('--no-sandbox')
-                options.add_argument('--disable-dev-shm-usage')
-                options.add_argument('--disable-gpu')
-                options.add_argument('--window-size=1920,1080')
-                options.add_argument('--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.7258.66 Safari/537.36')
-                
-                driver = uc.Chrome(options=options)
-                print(f"✅ Successfully created Chrome driver using: {chrome_path or 'auto-detected path'}")
-                return driver
-                
-            except Exception as fallback_error:
-                print(f"❌ Failed with {chrome_path or 'auto-detect'}: {fallback_error}")
-                continue
-        
-        raise Exception("❌ Could not create Chrome driver with any configuration")
 
 # ===============================================
 # COMPREHENSIVE LINK DISCOVERY
@@ -995,28 +1243,30 @@ def find_all_croma_store_links_comprehensive(data: List[Dict]) -> List[Dict]:
 def process_croma_comprehensive(input_file: str = "all_data_amazon_jio.json", 
                               output_file: str = "all_data_amazon_jio_croma.json"):
     """
-    FULLY AUTONOMOUS Croma processing that:
-    1. Uses comprehensive input file as source
-    2. Finds Croma links in ALL 3 nested locations
-    3. Tracks URLs with visited_urls_croma.txt
-    4. Detects stock status via span.amount#pdp-product-price
-    5. Creates fresh browser session for each link
-    6. Completely isolates Amazon data
-    7. Uses advanced ranking logic
-    8. Backup every 100 URLs for better performance
-    9. No user interaction required
+    ENHANCED Croma processing with advanced features:
+    1. URL-based persistent caching system
+    2. Exchange price extraction and terminal display
+    3. Discontinued product detection and automatic skipping
+    4. Single browser session with automatic renewal every 100 sessions
+    5. Finds Croma links in ALL 3 nested locations
+    6. Tracks URLs with visited_urls_croma.txt
+    7. Completely isolates Amazon data
+    8. No user interaction required
     """
     
-    print(f"🚀 COMPREHENSIVE CROMA SCRAPER - FULLY AUTONOMOUS MODE")
+    print(f"🚀 ENHANCED CROMA SCRAPER WITH ADVANCED FEATURES")
     print(f"📂 Input file: {input_file}")
     print(f"📂 Output file: {output_file}")
-    print(f"🛡️  Amazon data isolation: ENABLED (no changes to Amazon offers)")
-    print(f"📝 URL tracking: visited_urls_croma.txt")
-    print(f"📦 Stock detection: span.amount#pdp-product-price element")
-    print(f"🔄 Session management: Fresh browser session for each link")
-    print(f"💾 Backup frequency: Every 100 URLs")
-    print(f"🤖 Automation: No user interaction required")
+    print(f"� Caching system: URL-based persistent cache (croma_cache.json)")
+    print(f"� Exchange price: Extraction and terminal display")
+    print(f"❌ Discontinued products: Automatic detection and skipping")
+    print(f"🔄 Browser sessions: Single session with renewal every 100 URLs")
+    print(f"� URL tracking: visited_urls_croma.txt")
+    print(f"🛡️  Amazon data isolation: ENABLED")
     print("-" * 80)
+    
+    # Load URL-based cache
+    cache = load_cache("croma_cache.json")
     
     # Create backup before processing
     backup_file = f"{input_file}.backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
@@ -1033,7 +1283,7 @@ def process_croma_comprehensive(input_file: str = "all_data_amazon_jio.json",
         print(f"❌ Error loading {input_file}: {e}")
         return
     
-    # Setup URL tracking with new functionality
+    # Setup URL tracking
     visited_urls_file = manage_visited_urls_file("visited_urls_croma.txt")
     visited_urls = load_visited_urls(visited_urls_file)
     
@@ -1045,30 +1295,34 @@ def process_croma_comprehensive(input_file: str = "all_data_amazon_jio.json",
         print(f"❌ No Croma store links found in {input_file}")
         return
     
-    # Check how many URLs have already been visited
-    already_visited_count = len([link for link in croma_store_links if link['store_link'].get('url') in visited_urls])
-    if already_visited_count > 0:
-        print(f"🔄 Found {already_visited_count} previously visited URLs (will re-process all)")
+    # Check cache status
+    cached_count = len([link for link in croma_store_links if is_url_cached(link['store_link'].get('url', ''), cache)])
+    new_urls_count = len(croma_store_links) - cached_count
+    print(f"� Cache status: {cached_count} URLs cached, {new_urls_count} new URLs to process")
     
-    print(f"🚀 Processing ALL {len(croma_store_links)} Croma links (including re-scraping)")
+    print(f"🚀 Processing {len(croma_store_links)} Croma links with advanced features")
     
-    # Setup initial Chrome driver and analyzer
-    driver = create_chrome_driver()
+    # Setup driver manager and analyzer
+    driver_manager = RobustDriverManager()
     analyzer = CromaOfferAnalyzer()
     
     # Statistics
     stats = {
         'processed': 0,
         'skipped_no_url': 0,
+        'skipped_cached': 0,
+        'skipped_discontinued': 0,
         'scraped_successfully': 0,
         'failed_scraping': 0,
         'total_offers_added': 0,
         'in_stock_count': 0,
-        'out_of_stock_count': 0
+        'out_of_stock_count': 0,
+        'exchange_prices_found': 0,
+        'session_renewals': 0
     }
     
     try:
-        print(f"\n🎯 Starting Croma scraping (Amazon data completely isolated)...")
+        print(f"\n🎯 Starting enhanced Croma scraping...")
         
         for idx, link_data in enumerate(croma_store_links):
             entry = link_data['entry']
@@ -1076,29 +1330,6 @@ def process_croma_comprehensive(input_file: str = "all_data_amazon_jio.json",
             
             print(f"\n🔍 Processing {idx + 1}/{len(croma_store_links)}: {entry.get('product_name', 'N/A')}")
             print(f"   📍 Location: {link_data['path']}")
-            print(f"   🔧 Session: Fresh session for each link")
-            
-            # Session management: recreate driver for each link (if not the first link)
-            if idx > 0:
-                print(f"   🔄 Creating fresh Chrome session for this link...")
-                try:
-                    driver.quit()
-                    time.sleep(2)  # Brief pause before creating new session
-                except Exception as e:
-                    logging.warning(f"Error closing previous session: {e}")
-                
-                driver = create_chrome_driver()
-                print(f"   ✅ New Chrome session created successfully")
-            
-            # Get parent object info for display
-            parent_obj = link_data['parent_object']
-            if link_data['location'] == 'variants':
-                variant_info = f"{parent_obj.get('colour', 'N/A')} {parent_obj.get('ram', '')} {parent_obj.get('storage', '')}"
-                print(f"   📱 Variant: {variant_info}")
-            elif link_data['location'] == 'all_matching_products':
-                print(f"   🔗 Matching Product: {parent_obj.get('name', 'N/A')}")
-            else:  # unmapped
-                print(f"   📦 Unmapped: {parent_obj.get('name', 'N/A')}")
             
             croma_url = store_link.get('url', '')
             if not croma_url:
@@ -1108,14 +1339,77 @@ def process_croma_comprehensive(input_file: str = "all_data_amazon_jio.json",
             
             print(f"   🌐 Croma URL: {croma_url}")
             
-            # Visit the page first for stock status checking
+            # Check cache first
+            if is_url_cached(croma_url, cache):
+                print(f"   � Found in cache - using cached data")
+                cached_data = cache[croma_url]['data']
+                
+                # Update store_link with cached data
+                store_link.update(cached_data)
+                stats['skipped_cached'] += 1
+                stats['processed'] += 1
+                
+                if store_link.get('exchange_price'):
+                    print(f"   💱 Cached Exchange Price: {store_link['exchange_price']}")
+                    stats['exchange_prices_found'] += 1
+                
+                continue
+            
+            # Get driver (with automatic renewal every 100 sessions)
+            if driver_manager.session_count == 0 and idx > 0:
+                stats['session_renewals'] += 1
+            
+            driver = driver_manager.get_driver()
+            print(f"   🤖 Using session #{driver_manager.session_count} (renews every {driver_manager.max_sessions})")
+            
+            # Visit the page for comprehensive checking
             try:
                 driver.get(croma_url)
-                time.sleep(3)  # Wait for page to load
+                time.sleep(5)  # Wait for page to load
                 
-                # Extract stock status first
+                # Wait for page to be ready
+                WebDriverWait(driver, 15).until(
+                    lambda d: d.execute_script("return document.readyState") == "complete"
+                )
+                time.sleep(3)
+                
+                # Additional wait for dynamic content like exchange prices
+                try:
+                    # Try to wait for price elements to load
+                    WebDriverWait(driver, 10).until(
+                        EC.any_of(
+                            EC.presence_of_element_located((By.CLASS_NAME, "with-Exchange-text")),
+                            EC.presence_of_element_located((By.CLASS_NAME, "exchange-text")),
+                            EC.presence_of_element_located((By.ID, "pdp-product-price"))
+                        )
+                    )
+                    print(f"   ✅ Price elements loaded successfully")
+                except TimeoutException:
+                    print(f"   ⚠️  Price elements took longer to load, continuing anyway")
+                    time.sleep(2)  # Extra wait time
+                
+                # Extract comprehensive stock status (includes discontinued check)
                 stock_status = extract_croma_stock_status(driver, croma_url)
+                
+                # Check if product is discontinued
+                if stock_status.get('discontinued', False):
+                    print(f"   ❌ Product discontinued - skipping to next product")
+                    stats['skipped_discontinued'] += 1
+                    stats['processed'] += 1
+                    
+                    # Cache the discontinued status
+                    discontinued_data = {
+                        'in_stock': False,
+                        'discontinued': True,
+                        'ranked_offers': [],
+                        'exchange_price': None
+                    }
+                    add_to_cache(croma_url, discontinued_data, cache)
+                    continue
+                
+                # Update stock status
                 store_link['in_stock'] = stock_status['in_stock']
+                store_link['discontinued'] = stock_status.get('discontinued', False)
                 
                 if stock_status['in_stock']:
                     stats['in_stock_count'] += 1
@@ -1124,7 +1418,23 @@ def process_croma_comprehensive(input_file: str = "all_data_amazon_jio.json",
                     stats['out_of_stock_count'] += 1
                     print(f"   📦 Stock status: Out of Stock - {stock_status['status_details']}")
                 
-                # SCRAPE THE CROMA OFFERS (regardless of stock status)
+                # Display exchange price in terminal (separate extraction for verification)
+                exchange_price = stock_status.get('exchange_price')
+                if not exchange_price:
+                    # Try direct extraction if not found in stock status
+                    print(f"   🔍 Exchange price not found in stock check, trying direct extraction...")
+                    exchange_price = extract_exchange_price(driver, croma_url)
+                    stock_status['exchange_price'] = exchange_price
+                
+                if exchange_price:
+                    print(f"   💱 Exchange Price: {exchange_price}")
+                    store_link['exchange_price'] = exchange_price
+                    stats['exchange_prices_found'] += 1
+                else:
+                    print(f"   💱 Exchange Price: Not available")
+                    store_link['exchange_price'] = None
+                
+                # SCRAPE THE CROMA OFFERS
                 print(f"   🔄 Scraping Croma offers...")
                 offers = get_croma_offers(driver, croma_url)
                 stats['processed'] += 1
@@ -1153,25 +1463,44 @@ def process_croma_comprehensive(input_file: str = "all_data_amazon_jio.json",
                     store_link['ranked_offers'] = []
                     stats['failed_scraping'] += 1
                 
-                # Always add URL to visited list after processing
+                # Cache the scraped data
+                cache_data = {
+                    'in_stock': store_link['in_stock'],
+                    'discontinued': store_link.get('discontinued', False),
+                    'ranked_offers': store_link['ranked_offers'],
+                    'exchange_price': store_link.get('exchange_price')
+                }
+                add_to_cache(croma_url, cache_data, cache)
+                
+                # Add URL to visited list
                 append_visited_url(croma_url, visited_urls_file)
-                print(f"   📝 Added URL to visited_urls_croma.txt")
+                print(f"   📝 Added to cache and visited URLs")
                 
             except Exception as e:
                 print(f"   ❌ Error processing URL: {e}")
                 logging.error(f"Error processing {croma_url}: {e}")
                 store_link['in_stock'] = False
                 store_link['ranked_offers'] = []
+                store_link['exchange_price'] = None
                 stats['failed_scraping'] += 1
-                # Still add to visited URLs even if failed
+                
+                # Cache the error status
+                error_data = {
+                    'in_stock': False,
+                    'discontinued': False,
+                    'ranked_offers': [],
+                    'exchange_price': None
+                }
+                add_to_cache(croma_url, error_data, cache)
                 append_visited_url(croma_url, visited_urls_file)
             
-            # Save progress every 100 entries for better performance
-            if (idx + 1) % 100 == 0:
+            # Save progress and cache every 50 entries
+            if (idx + 1) % 50 == 0:
                 progress_backup_file = f"{output_file}.backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
                 with open(progress_backup_file, 'w', encoding='utf-8') as f:
                     json.dump(data, f, indent=2, ensure_ascii=False)
-                print(f"   💾 Progress saved to {progress_backup_file} (backup every 100 URLs)")
+                save_cache(cache, "croma_cache.json")
+                print(f"   💾 Progress and cache saved (every 50 URLs)")
             
             # Brief delay between requests
             time.sleep(2)
@@ -1180,10 +1509,11 @@ def process_croma_comprehensive(input_file: str = "all_data_amazon_jio.json",
         print("\n⚠️  Interrupted! Saving progress...")
     
     finally:
-        try:
-            driver.quit()
-        except:
-            pass
+        # Close driver manager
+        driver_manager.close()
+        
+        # Save final cache
+        save_cache(cache, "croma_cache.json")
         
         # Save final output
         with open(output_file, 'w', encoding='utf-8') as f:
@@ -1192,50 +1522,57 @@ def process_croma_comprehensive(input_file: str = "all_data_amazon_jio.json",
         print(f"\n✅ Final output saved to {output_file}")
         
         # Print comprehensive statistics
-        print(f"\n📊 COMPREHENSIVE PROCESSING SUMMARY:")
+        print(f"\n📊 ENHANCED PROCESSING SUMMARY:")
         print(f"   🎯 Croma links processed: {stats['processed']}")
+        print(f"   📋 Cached URLs used: {stats['skipped_cached']}")
+        print(f"   ❌ Discontinued products skipped: {stats['skipped_discontinued']}")
         print(f"   ✅ Successfully scraped: {stats['scraped_successfully']}")
         print(f"   ❌ Failed scraping: {stats['failed_scraping']}")
         print(f"   ⚠️  Skipped (no URL): {stats['skipped_no_url']}")
         print(f"   🎁 Total offers added: {stats['total_offers_added']}")
         print(f"   📦 In stock products: {stats['in_stock_count']}")
         print(f"   📦 Out of stock products: {stats['out_of_stock_count']}")
-        print(f"   📝 URL tracking: Active (visited_urls_croma.txt updated)")
-        print(f"   🔄 Session management: Fresh session for each link")
-        print(f"   🤖 Automation: Fully automated (no user input)")
+        print(f"   � Exchange prices found: {stats['exchange_prices_found']}")
+        print(f"   🔄 Session renewals: {stats['session_renewals']}")
+        print(f"   📝 Cache entries: {len(cache)}")
+        print(f"   🤖 Browser optimization: Single session with auto-renewal")
         print(f"   🛡️  Amazon entries completely untouched!")
         
-        success_rate = (stats['scraped_successfully'] / stats['processed'] * 100) if stats['processed'] > 0 else 0
+        success_rate = (stats['scraped_successfully'] / max(stats['processed'] - stats['skipped_cached'] - stats['skipped_discontinued'], 1) * 100)
         print(f"   📈 Success rate: {success_rate:.1f}%")
 
 if __name__ == "__main__":
-    print("🚀 COMPREHENSIVE CROMA SCRAPER - FULLY AUTONOMOUS")
+    print("🚀 ENHANCED CROMA SCRAPER WITH ADVANCED FEATURES")
     print("=" * 80)
-    print("🔄 Processes ALL Croma links with fresh sessions")
+    print("� URL-based persistent caching system (croma_cache.json)")
+    print("💱 Exchange price extraction and terminal display")
+    print("❌ Discontinued product detection and automatic skipping")
+    print("🔄 Single browser session with automatic renewal every 100 sessions")
     print("✅ Comprehensive JSON traversal (variants + all_matching_products + unmapped)")
-    print("✅ Uses correct input file: all_data_amazon_jio.json")  
+    print("✅ BeautifulSoup deprecation warning fixes")
     print("✅ Explicit Amazon/Flipkart/JioMart data isolation")
     print("✅ URL tracking with visited_urls_croma.txt")
     print("✅ Stock detection via span.amount#pdp-product-price")
-    print("🤖 NEW: Fully automated (no user input required)")
-    print("🔄 NEW: Fresh browser session for each link")
-    print("💾 NEW: Backup every 100 URLs for better performance")
-    print("📦 NEW: Stock status detection and tracking")
+    print("🤖 Fully automated (no user input required)")
+    print("� Backup every 50 URLs for better performance")
     print("-" * 80)
     
-    # Auto-configuration: No user interaction required
-    print("🚀 Starting automated processing with default settings:")
-    print("   • Input file: all_data_amazon_jio.json")
+    # Auto-configuration with advanced features
+    print("🚀 Starting enhanced processing with all advanced features:")
+    print("   • Input file: all_data.json")
     print("   • Output file: all_data_amazon_jio_croma.json")
-    print("   • Browser mode: Headless server mode")
-    print("   • Session management: Fresh session for each link")
+    print("   • Caching: URL-based persistent cache (croma_cache.json)")
+    print("   • Exchange prices: Extracted and displayed in terminal")
+    print("   • Discontinued products: Automatically detected and skipped")
+    print("   • Browser mode: Single session with auto-renewal")
+    print("   • Session renewal: Every 100 URLs")
     print("   • URL tracking: visited_urls_croma.txt")
     print("   • Stock detection: span.amount#pdp-product-price element")
-    print("   • Backup frequency: Every 100 URLs")
+    print("   • Backup frequency: Every 50 URLs")
     print("   • Amazon isolation: ENABLED")
     print()
     
-    # Start processing immediately with default parameters
+    # Start processing with all advanced features
     process_croma_comprehensive(
         input_file="all_data.json",
         output_file="all_data_amazon_jio_croma.json"

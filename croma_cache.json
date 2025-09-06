@@ -1,0 +1,42 @@
+{
+  "https://www.croma.com/samsung-galaxy-s24-plus-5g-12gb-ram-256gb-amber-yellow-/p/303863": {
+    "data": {
+      "in_stock": false,
+      "discontinued": true,
+      "ranked_offers": [],
+      "exchange_price": null
+    },
+    "timestamp": "2025-09-05T18:31:46.301621",
+    "scraped_at": 1757077306.3175476
+  },
+  "https://www.croma.com/samsung-galaxy-s24-plus-5g-12gb-ram-512gb-amber-yellow-/p/303843": {
+    "data": {
+      "in_stock": false,
+      "discontinued": true,
+      "ranked_offers": [],
+      "exchange_price": null
+    },
+    "timestamp": "2025-09-05T18:32:09.378914",
+    "scraped_at": 1757077329.3789144
+  },
+  "https://www.croma.com/redmi-12-5g-6gb-ram-128gb-jade-black-/p/275648?srsltid=AfmBOoojC2Zapw1jg5scvLTzlIYHIAK3NYwq00JrZQ7g5WtaIl7INNOcBS0": {
+    "data": {
+      "in_stock": true,
+      "discontinued": false,
+      "ranked_offers": [],
+      "exchange_price": null
+    },
+    "timestamp": "2025-09-05T18:33:01.512634",
+    "scraped_at": 1757077381.5126345
+  },
+  "https://www.croma.com/redmi-12-5g-6gb-ram-128gb-jade-black-/p/275648?srsltid=AfmBOoqvybsj8mw-X9f4ducdyQqFZ43P0BXJDDAVVnt-I-UIHR3k2WH4-vg": {
+    "data": {
+      "in_stock": true,
+      "discontinued": false,
+      "ranked_offers": [],
+      "exchange_price": "up to ₹10,619.9 off"
+    },
+    "timestamp": "2025-09-05T18:33:56.940123",
+    "scraped_at": 1757077436.9401233
+  }
+}
