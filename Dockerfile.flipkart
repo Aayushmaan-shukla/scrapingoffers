@@ -38,13 +38,16 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the enhanced Flipkart scraper
 COPY enhanced_flipkart_scraper_comprehensive.py .
+COPY flipkart_cache.json .
+COPY visited_urls_flipkart.txt .
 
 # Create data directory
 RUN mkdir -p /root/scraping/dockertest/scrapingoffers/data
 
 # Copy the all_data.json file to the data directory
-COPY all_data.json ./data/
-
+COPY all_data_flipkart_20250905_142008.json.progress_20250905_212054.json ./data/
+COPY flipkart_cache.json ./data/
+COPY visited_urls_flipkart.txt ./data/
 # Set environment variables for the scraper
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/root/scraping/dockertest/scrapingoffers

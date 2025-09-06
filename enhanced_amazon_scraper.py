@@ -399,6 +399,167 @@ def enhanced_cleanup_resources():
         logging.warning(f"Error during enhanced resource cleanup: {e}")
         print(f"⚠️ Error during enhanced resource cleanup: {e}")
 
+def refresh_thread_resources():
+    """
+    Enhanced thread resource refresh to prevent pthread_create failures.
+    """
+    try:
+        import gc
+        import threading
+        import os
+        import time
+        
+        # Force multiple garbage collection cycles
+        for _ in range(3):
+            gc.collect()
+        
+        # Get current thread count
+        current_threads = threading.active_count()
+        print(f"🔄 Current active threads: {current_threads}")
+        
+        # Clean up any hanging threads more aggressively
+        threads_to_clean = []
+        for thread in threading.enumerate():
+            if thread.is_alive() and thread.name != threading.current_thread().name:
+                # Check if thread is daemon or has been running too long
+                if thread.daemon or (hasattr(thread, '_start_time') and 
+                    time.time() - getattr(thread, '_start_time', 0) > 300):  # 5 minutes
+                    threads_to_clean.append(thread)
+        
+        # Clean up identified threads
+        for thread in threads_to_clean:
+            try:
+                if hasattr(thread, '_stop'):
+                    thread._stop()
+                elif hasattr(thread, 'join'):
+                    thread.join(timeout=1.0)  # Wait max 1 second
+            except Exception as cleanup_error:
+                logging.warning(f"Error cleaning up thread {thread.name}: {cleanup_error}")
+        
+        # Additional cleanup for pthread resources
+        try:
+            # Force Python to release any held thread resources
+            import ctypes
+            if hasattr(ctypes, 'CDLL'):
+                try:
+                    libc = ctypes.CDLL("libc.so.6")
+                    if hasattr(libc, 'pthread_yield'):
+                        libc.pthread_yield()
+                except:
+                    pass
+        except:
+            pass
+        
+        print(f"🔄 Thread resources refreshed (cleaned {len(threads_to_clean)} threads)")
+        logging.info(f"🔄 Thread resources refreshed (cleaned {len(threads_to_clean)} threads)")
+        
+    except Exception as e:
+        logging.warning(f"Error refreshing thread resources: {e}")
+        print(f"⚠️ Error refreshing thread resources: {e}")
+
+def check_thread_usage():
+    """
+    Enhanced thread usage monitoring with pthread resource awareness.
+    
+    Returns:
+        dict: Thread usage information including pthread limits
+    """
+    try:
+        import threading
+        import os
+        import resource
+        
+        if PSUTIL_AVAILABLE:
+            # Get current process
+            process = psutil.Process(os.getpid())
+            
+            # Get thread count
+            thread_count = process.num_threads()
+            
+            # Get system thread limit (approximate)
+            try:
+                if hasattr(psutil, 'cpu_count'):
+                    max_threads = psutil.cpu_count() * 4  # Conservative estimate
+                else:
+                    max_threads = 100  # Fallback
+            except:
+                max_threads = 100
+        else:
+            # Fallback when psutil is not available
+            thread_count = len(threading.enumerate())
+            max_threads = 100  # Conservative estimate
+        
+        # Check for pthread resource limits
+        try:
+            if RESOURCE_AVAILABLE:
+                # Get thread-related resource limits
+                soft_threads, hard_threads = resource.getrlimit(resource.RLIMIT_NPROC)
+                print(f"📊 Thread limits - Soft: {soft_threads}, Hard: {hard_threads}")
+                
+                # Adjust max_threads based on system limits
+                if soft_threads > 0 and soft_threads < max_threads:
+                    max_threads = min(max_threads, soft_threads // 2)  # Use half of available
+        except:
+            pass
+        
+        thread_usage = thread_count / max_threads if max_threads > 0 else 0
+        
+        return {
+            'thread_count': thread_count,
+            'max_threads': max_threads,
+            'usage_ratio': thread_usage,
+            'is_high_usage': thread_usage > 0.7,  # Lowered threshold for pthread issues
+            'is_critical': thread_usage > 0.9
+        }
+        
+    except Exception as e:
+        logging.warning(f"Error checking thread usage: {e}")
+        return {
+            'thread_count': 0,
+            'max_threads': 100,
+            'usage_ratio': 0,
+            'is_high_usage': False,
+            'is_critical': False
+        }
+
+def force_thread_cleanup():
+    """
+    Force cleanup of all non-essential threads to prevent pthread exhaustion.
+    """
+    try:
+        import threading
+        import gc
+        import time
+        
+        print("🧹 Force cleaning up threads...")
+        
+        # Get all threads except main thread
+        all_threads = [t for t in threading.enumerate() if t != threading.current_thread()]
+        
+        # Clean up daemon threads first
+        daemon_threads = [t for t in all_threads if t.daemon]
+        for thread in daemon_threads:
+            try:
+                if hasattr(thread, '_stop'):
+                    thread._stop()
+                elif hasattr(thread, 'join'):
+                    thread.join(timeout=0.5)
+            except:
+                pass
+        
+        # Force garbage collection
+        for _ in range(5):
+            gc.collect()
+        
+        # Wait a bit for cleanup
+        time.sleep(0.1)
+        
+        remaining_threads = len([t for t in threading.enumerate() if t != threading.current_thread()])
+        print(f"🧹 Thread cleanup completed. Remaining threads: {remaining_threads}")
+        
+    except Exception as e:
+        logging.warning(f"Error in force thread cleanup: {e}")
+
 def handle_chrome_driver_errors(driver, error, max_retries=3):
     """
     Enhanced Chrome driver error handling with automatic restart and recovery.
@@ -2268,7 +2429,31 @@ def create_chrome_driver(proxy=None, use_proxy=False):
             logging.error(f"❌ Error configuring proxy: {e}")
             print(f"❌ Proxy configuration failed: {e}")
     
-    return uc.Chrome(options=options)
+    # Check thread usage before creating driver
+    thread_info = check_thread_usage()
+    if thread_info['is_critical']:
+        print(f"   🚨 Critical thread usage before driver creation, forcing cleanup...")
+        force_thread_cleanup()
+    
+    try:
+        return uc.Chrome(options=options)
+    except Exception as chrome_error:
+        error_str = str(chrome_error).lower()
+        
+        # Check for pthread-related errors
+        if 'pthread_create failed' in error_str or 'resource temporarily unavailable' in error_str:
+            print(f"   🚨 Pthread resource exhaustion detected, forcing thread cleanup...")
+            force_thread_cleanup()
+            # Wait a bit for system to recover
+            time.sleep(2)
+            # Try again with cleaned up threads
+            try:
+                return uc.Chrome(options=options)
+            except Exception as retry_error:
+                print(f"   ❌ Driver creation still failed after cleanup: {retry_error}")
+                raise retry_error
+        else:
+            raise chrome_error
 
 def process_comprehensive_amazon_store_links(input_file, output_file, start_idx=0, max_entries=None):
     """
@@ -2339,8 +2524,8 @@ def process_comprehensive_amazon_store_links(input_file, output_file, start_idx=
                 print(f"   🛒 Path: {link_data['path'][:100]}...")
                 print(f"   🔧 Session: Fresh session for each link")
                 
-                # Enhanced thread management - refresh threads periodically
-                if (idx + 1) % 25 == 0:  # Every 25 links
+                # Enhanced thread management - refresh threads more frequently to prevent pthread issues
+                if (idx + 1) % 10 == 0:  # Every 10 links - more frequent
                     print(f"   🔄 Refreshing thread resources...")
                     refresh_thread_resources()
                     
@@ -2349,12 +2534,20 @@ def process_comprehensive_amazon_store_links(input_file, output_file, start_idx=
                     if thread_info['is_high_usage']:
                         print(f"   ⚠️  High thread usage detected: {thread_info['thread_count']}/{thread_info['max_threads']} ({thread_info['usage_ratio']:.1%})")
                         enhanced_cleanup_resources()
+                    elif thread_info['is_critical']:
+                        print(f"   🚨 Critical thread usage detected: {thread_info['thread_count']}/{thread_info['max_threads']} ({thread_info['usage_ratio']:.1%})")
+                        force_thread_cleanup()
                 
-                # Periodic resource cleanup every 50 links
-                if (idx + 1) % 50 == 0:
+                # Periodic resource cleanup every 25 links - more frequent
+                if (idx + 1) % 25 == 0:
                     print(f"   🧹 Performing periodic resource cleanup...")
                     enhanced_cleanup_resources()
                     manage_file_descriptors()
+                
+                # Force thread cleanup every 100 links to prevent pthread exhaustion
+                if (idx + 1) % 100 == 0:
+                    print(f"   🧹 Force thread cleanup to prevent pthread exhaustion...")
+                    force_thread_cleanup()
                 
                 amazon_url = store_link.get('url', '')
                 if not amazon_url:
@@ -2593,18 +2786,27 @@ def process_comprehensive_amazon_store_links(input_file, output_file, start_idx=
                 logging.error(f"Error processing link {idx + 1}: {e}")
                 print(f"   ❌ Error processing link: {e}")
                 
-                # Check if this is a connection or "too many open files" error
+                # Check if this is a connection, file descriptor, or pthread error
                 error_str = str(e).lower()
                 is_connection_error = any(keyword in error_str for keyword in PROXY_CONFIG['connection_error_keywords'])
                 is_fd_error = 'too many open files' in error_str or 'errno 24' in error_str
+                is_pthread_error = ('pthread_create failed' in error_str or 
+                                  'resource temporarily unavailable' in error_str or
+                                  'errno 11' in error_str or 'errno 35' in error_str)
                 
                 # Track persistent errors and pause if threshold exceeded
                 if not hasattr(process_comprehensive_amazon_store_links, '_persistent_error_count'):
                     process_comprehensive_amazon_store_links._persistent_error_count = 0  # type: ignore
-                if is_connection_error or is_fd_error:
+                if is_connection_error or is_fd_error or is_pthread_error:
                     process_comprehensive_amazon_store_links._persistent_error_count += 1  # type: ignore
                 else:
                     process_comprehensive_amazon_store_links._persistent_error_count = 0  # type: ignore
+                
+                # Handle pthread errors specifically
+                if is_pthread_error:
+                    print(f"   🚨 Pthread error detected, forcing thread cleanup...")
+                    force_thread_cleanup()
+                    time.sleep(2)  # Wait for system to recover
                 
                 if getattr(process_comprehensive_amazon_store_links, '_persistent_error_count', 0) >= 5:  # type: ignore
                     # Save current progress and cache, then pause execution

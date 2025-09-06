@@ -277,42 +277,135 @@ class BackupManager:
             backup_pattern = f"{self.base_name}.backup_*.json"
             backup_files = glob.glob(os.path.join(self.backup_dir, backup_pattern))
             
-            if len(backup_files) > self.max_backups:
+            print(f"   🔍 Found {len(backup_files)} backup files")
+            
+ all_data_flipkart_20250905_142008.json.progress_20250905_212054.json            if len(backup_files) > self.max_backups:
                 # Sort by modification time (oldest first)
                 backup_files.sort(key=os.path.getmtime)
                 
                 # Remove oldest backups
                 files_to_remove = backup_files[:-self.max_backups]
+                removed_count = 0
+                
                 for old_backup in files_to_remove:
                     try:
-                        os.remove(old_backup)
-                        print(f"   🗑️  Removed old backup: {os.path.basename(old_backup)}")
+                        if os.path.exists(old_backup):
+                            os.remove(old_backup)
+                            removed_count += 1
+                            print(f"   🗑️  Removed old backup: {os.path.basename(old_backup)}")
                     except Exception as e:
                         print(f"   ⚠️  Could not remove {os.path.basename(old_backup)}: {e}")
+                        logging.warning(f"Could not remove backup {old_backup}: {e}")
                 
-                print(f"   🧹 Cleaned up {len(files_to_remove)} old backup files")
+                if removed_count > 0:
+                    print(f"   🧹 Cleaned up {removed_count} old backup files")
+                else:
+                    print(f"   ℹ️  No backup files were removed")
+            else:
+                print(f"   ℹ️  Backup count ({len(backup_files)}) within limit ({self.max_backups})")
             
         except Exception as e:
             print(f"   ⚠️  Error during backup cleanup: {e}")
             logging.warning(f"Backup cleanup error: {e}")
     
     def cleanup_progress_files(self, output_file):
-        """Clean up old progress files"""
+        """Clean up old progress files with comprehensive pattern matching"""
         try:
-            progress_pattern = f"{os.path.splitext(os.path.basename(output_file))[0]}.progress_*.json"
-            progress_files = glob.glob(os.path.join(self.backup_dir, progress_pattern))
+            # Get the base name without extension for pattern matching
+            base_name = os.path.splitext(os.path.basename(output_file))[0]
             
-            if progress_files:
-                for progress_file in progress_files:
+            # Multiple patterns to catch all possible progress file formats
+            patterns = [
+                f"{base_name}.progress_*.json",  # all_data_flipkart_20250905_142008.json.progress_*.json
+                f"all_data_flipkart_*.json.progress_*.json",  # Catch all flipkart progress files
+                f"*.progress_*.json",  # Catch any progress files
+                f"all_data*.progress_*.json",  # Catch all_data variants
+            ]
+            
+            all_progress_files = set()
+            for pattern in patterns:
+                files = glob.glob(os.path.join(self.backup_dir, pattern))
+                all_progress_files.update(files)
+            
+            # Convert back to list and sort by modification time (oldest first)
+            all_progress_files = list(all_progress_files)
+            all_progress_files.sort(key=os.path.getmtime)
+            
+            print(f"   🔍 Found {len(all_progress_files)} progress files to clean up")
+            
+            if all_progress_files:
+                removed_count = 0
+                for progress_file in all_progress_files:
                     try:
-                        os.remove(progress_file)
-                    except Exception:
-                        pass  # Silently remove old progress files
+                        if os.path.exists(progress_file):
+                            os.remove(progress_file)
+                            removed_count += 1
+                            print(f"   🗑️  Removed progress file: {os.path.basename(progress_file)}")
+                    except Exception as e:
+                        print(f"   ⚠️  Could not remove {os.path.basename(progress_file)}: {e}")
+                        logging.warning(f"Could not remove progress file {progress_file}: {e}")
                 
-                print(f"   🧹 Cleaned up {len(progress_files)} old progress files")
+                if removed_count > 0:
+                    print(f"   🧹 Cleaned up {removed_count} old progress files")
+                else:
+                    print(f"   ℹ️  No progress files were removed")
+            else:
+                print(f"   ℹ️  No progress files found to clean up")
                 
         except Exception as e:
             print(f"   ⚠️  Error during progress cleanup: {e}")
+            logging.warning(f"Progress cleanup error: {e}")
+
+class CircuitBreaker:
+    """Circuit breaker pattern to stop scraping when resources are exhausted"""
+    
+    def __init__(self, max_consecutive_failures=10, resource_threshold=0.9):
+        self.max_consecutive_failures = max_consecutive_failures
+        self.resource_threshold = resource_threshold
+        self.consecutive_failures = 0
+        self.is_open = False
+        self.last_failure_time = None
+        self.reset_timeout = 300  # 5 minutes
+    
+    def should_stop_scraping(self, error=None):
+        """Check if scraping should be stopped due to resource exhaustion"""
+        # Check for resource exhaustion errors
+        if error and ErrorHandler.is_resource_error(error):
+            self.consecutive_failures += 1
+            self.last_failure_time = time.time()
+            
+            if self.consecutive_failures >= self.max_consecutive_failures:
+                self.is_open = True
+                print(f"   🚨 CIRCUIT BREAKER OPEN: {self.consecutive_failures} consecutive resource failures")
+                logging.error(f"Circuit breaker opened after {self.consecutive_failures} consecutive resource failures")
+                return True
+        
+        # Check current resource usage
+        try:
+            info = get_system_resource_info()
+            
+            # Check if we're approaching resource limits
+            file_usage = info['open_files'] / info['file_limit_soft'] if info['file_limit_soft'] > 0 else 0
+            thread_usage = info['thread_count'] / info['thread_limit_soft'] if info['thread_limit_soft'] > 0 else 0
+            memory_usage = info['memory_percent'] / 100 if info['memory_percent'] > 0 else 0
+            
+            if file_usage > self.resource_threshold or thread_usage > self.resource_threshold or memory_usage > self.resource_threshold:
+                print(f"   🚨 RESOURCE EXHAUSTION: Files:{file_usage:.2f}, Threads:{thread_usage:.2f}, Memory:{memory_usage:.2f}")
+                logging.error(f"Resource exhaustion detected: Files:{file_usage:.2f}, Threads:{thread_usage:.2f}, Memory:{memory_usage:.2f}")
+                return True
+                
+        except Exception as e:
+            logging.warning(f"Error checking resource usage: {e}")
+        
+        return False
+    
+    def reset(self):
+        """Reset the circuit breaker"""
+        self.consecutive_failures = 0
+        self.is_open = False
+        self.last_failure_time = None
+        print("   🔄 Circuit breaker reset")
+        logging.info("Circuit breaker reset")
 
 class ErrorHandler:
     """Enhanced error handling for various scraping errors"""
@@ -346,7 +439,8 @@ class ErrorHandler:
         error_str = str(error).lower()
         resource_errors = [
             'too many open files', 'out of memory', 'memory error',
-            'file descriptor', 'resource temporarily unavailable'
+            'file descriptor', 'resource temporarily unavailable', 'pthread_create failed',
+            'resource temporarily unavailable', 'errno 11'
         ]
         return any(err in error_str for err in resource_errors)
     
@@ -363,7 +457,7 @@ class ErrorHandler:
             return "restart_driver"
         elif ErrorHandler.is_resource_error(error):
             print(f"   💾 Resource error detected: {error_str}")
-            return "cleanup_and_retry"
+            return "stop_scraping"  # Changed to stop scraping for resource errors
         else:
             print(f"   ❌ Unknown error: {error_str}")
             return "retry"
@@ -401,20 +495,28 @@ logging.basicConfig(
 # ===============================================
 
 def get_system_resource_info():
-    """Get current system resource usage information"""
+    """Get current system resource usage information with enhanced monitoring"""
     try:
         # Default values
         open_files = 0
         memory_mb = 0
         memory_percent = 0
+        thread_count = 0
+        process_count = 0
         
         # Get system limits (Unix only)
         if RESOURCE_AVAILABLE:
             soft_limit, hard_limit = resource.getrlimit(resource.RLIMIT_NOFILE)
+            # Also get thread limits
+            try:
+                thread_soft, thread_hard = resource.getrlimit(resource.RLIMIT_NPROC)
+            except:
+                thread_soft, thread_hard = 1024, 4096
         else:
             # Windows defaults - much higher limits usually
             soft_limit = 2048
             hard_limit = 16384
+            thread_soft, thread_hard = 1024, 4096
         
         if PSUTIL_AVAILABLE:
             process = psutil.Process()
@@ -422,6 +524,10 @@ def get_system_resource_info():
             memory_info = process.memory_info()
             memory_mb = memory_info.rss / 1024 / 1024
             memory_percent = process.memory_percent()
+            thread_count = process.num_threads()
+            
+            # Get system-wide process count
+            process_count = len(psutil.pids())
         else:
             # Fallback: use /proc filesystem on Unix or basic estimation
             try:
@@ -432,30 +538,61 @@ def get_system_resource_info():
                     # On Windows, we can't easily count file handles without additional tools
                     # Use a conservative estimate
                     open_files = 50  # Reasonable estimate for a Python process
+                
+                # Try to get thread count from /proc/self/status
+                if os.path.exists('/proc/self/status'):
+                    with open('/proc/self/status', 'r') as f:
+                        for line in f:
+                            if line.startswith('Threads:'):
+                                thread_count = int(line.split()[1])
+                                break
+                
+                # Try to get process count
+                if os.path.exists('/proc'):
+                    process_count = len([d for d in os.listdir('/proc') if d.isdigit()])
+                    
             except:
                 open_files = 0
+                thread_count = 0
+                process_count = 0
         
         return {
             'open_files': open_files,
             'file_limit_soft': soft_limit,
             'file_limit_hard': hard_limit,
             'memory_mb': memory_mb,
-            'memory_percent': memory_percent
+            'memory_percent': memory_percent,
+            'thread_count': thread_count,
+            'thread_limit_soft': thread_soft,
+            'thread_limit_hard': thread_hard,
+            'process_count': process_count
         }
     except Exception as e:
         logging.warning(f"Could not get resource info: {e}")
-        return {'open_files': 0, 'file_limit_soft': 2048, 'file_limit_hard': 16384, 'memory_mb': 0, 'memory_percent': 0}
+        return {
+            'open_files': 0, 'file_limit_soft': 2048, 'file_limit_hard': 16384, 
+            'memory_mb': 0, 'memory_percent': 0, 'thread_count': 0,
+            'thread_limit_soft': 1024, 'thread_limit_hard': 4096, 'process_count': 0
+        }
 
 def log_resource_usage(context=""):
-    """Log current resource usage"""
+    """Log current resource usage with enhanced monitoring"""
     info = get_system_resource_info()
-    print(f"   📊 {context}Resources: {info['open_files']}/{info['file_limit_soft']} files, {info['memory_mb']:.1f}MB RAM")
-    logging.info(f"{context}Resource usage: {info['open_files']}/{info['file_limit_soft']} open files, {info['memory_mb']:.1f}MB memory")
+    print(f"   📊 {context}Resources: {info['open_files']}/{info['file_limit_soft']} files, {info['memory_mb']:.1f}MB RAM, {info['thread_count']}/{info['thread_limit_soft']} threads")
+    logging.info(f"{context}Resource usage: {info['open_files']}/{info['file_limit_soft']} open files, {info['memory_mb']:.1f}MB memory, {info['thread_count']}/{info['thread_limit_soft']} threads")
     
     # Warning if approaching limits
     if info['open_files'] > info['file_limit_soft'] * 0.8:
         print(f"   ⚠️  WARNING: Approaching file handle limit! ({info['open_files']}/{info['file_limit_soft']})")
         logging.warning(f"Approaching file handle limit: {info['open_files']}/{info['file_limit_soft']}")
+    
+    if info['thread_count'] > info['thread_limit_soft'] * 0.8:
+        print(f"   ⚠️  WARNING: Approaching thread limit! ({info['thread_count']}/{info['thread_limit_soft']})")
+        logging.warning(f"Approaching thread limit: {info['thread_count']}/{info['thread_limit_soft']}")
+    
+    if info['memory_percent'] > 80:
+        print(f"   ⚠️  WARNING: High memory usage! ({info['memory_percent']:.1f}%)")
+        logging.warning(f"High memory usage: {info['memory_percent']:.1f}%")
 
 def force_cleanup():
     """Force garbage collection and resource cleanup"""
@@ -1717,8 +1854,8 @@ def create_chrome_driver():
         logging.error(f"Failed to create Chrome driver: {e}")
         raise
 
-def process_comprehensive_flipkart_links(input_file="all_data.json", 
-                                       output_file="all_data.json",
+def process_comprehensive_flipkart_links(input_file="all_data_flipkart_20250905_142008.json.progress_20250905_212054.json", 
+                                       output_file="all_data_flipkart_20250905_142008.json.progress_20250905_212054.json",
                                        flipkart_urls_file="visited_urls_flipkart.txt"):
     """
     Process Flipkart store links in the comprehensive JSON file with enhanced error handling
@@ -1756,8 +1893,9 @@ def process_comprehensive_flipkart_links(input_file="all_data.json",
     
     # Initialize enhanced managers
     backup_manager = BackupManager(input_file, max_backups=3)
-    thread_manager = ThreadManager(max_workers=4)
-    driver_manager = DriverManager(max_retries=3, restart_on_errors=True)
+    thread_manager = ThreadManager(max_workers=2)  # Reduced workers to prevent resource exhaustion
+    driver_manager = DriverManager(max_retries=2, restart_on_errors=True)  # Reduced retries
+    circuit_breaker = CircuitBreaker(max_consecutive_failures=5, resource_threshold=0.8)  # More aggressive limits
     
     # Create backup with automatic cleanup
     backup_file = backup_manager.create_backup()
@@ -1824,6 +1962,12 @@ def process_comprehensive_flipkart_links(input_file="all_data.json",
             print(f"   Path: {link_data['path']}")
             print(f"   URL: {link_data['url']}")
 
+            # Check circuit breaker before processing
+            if circuit_breaker.should_stop_scraping():
+                print(f"   🚨 STOPPING SCRAPING: Resource exhaustion detected")
+                logging.error("Stopping scraping due to resource exhaustion")
+                break
+            
             # Refresh threads periodically
             thread_manager.refresh_threads()
 
@@ -1842,11 +1986,16 @@ def process_comprehensive_flipkart_links(input_file="all_data.json",
                     print("   ⚡ Served from cache and recorded as visited")
                     # Save periodic progress when using cache as well
                     if (idx + 1) % 10 == 0:
-                        temp_backup = f"{output_file}.progress_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+                        # Clean up old progress files BEFORE creating new one
+                        backup_manager.cleanup_progress_files(output_file)
+                        
+                        # Create new progress file with correct naming pattern
+                        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                        temp_backup = f"{output_file}.progress_{timestamp}.json"
+                        
                         with open(temp_backup, 'w', encoding='utf-8') as f:
                             json.dump(data, f, indent=2, ensure_ascii=False)
                         save_url_cache(url_cache, cache_path)
-                        backup_manager.cleanup_progress_files(output_file)
                         print(f"   💾 Progress (cache-hit) saved to {temp_backup}")
                     continue
             except Exception as e:
@@ -2013,12 +2162,22 @@ def process_comprehensive_flipkart_links(input_file="all_data.json",
                     print(f"   ❌ Error processing URL (attempt {retry_count}/{max_retries}): {e}")
                     logging.error(f"Error processing {link_data['url']} (attempt {retry_count}): {e}")
                     
+                    # Check circuit breaker for resource errors
+                    if circuit_breaker.should_stop_scraping(e):
+                        print(f"   🚨 STOPPING SCRAPING: Resource exhaustion detected after error")
+                        logging.error("Stopping scraping due to resource exhaustion after error")
+                        break
+                    
                     if error_action == "restart_driver":
                         print(f"   🔄 Restarting driver due to error type")
                         try:
                             driver_manager.restart_driver()
                         except Exception as restart_error:
                             print(f"   ❌ Driver restart failed: {restart_error}")
+                    elif error_action == "stop_scraping":
+                        print(f"   🚨 STOPPING SCRAPING: Resource error detected")
+                        logging.error("Stopping scraping due to resource error")
+                        break
                     
                     if retry_count < max_retries:
                         wait_time = min(5 * retry_count, 15)  # Exponential backoff, max 15 seconds
@@ -2040,21 +2199,35 @@ def process_comprehensive_flipkart_links(input_file="all_data.json",
             
             # Context manager automatically cleans up driver here
             
-            # Log resource usage every 5 entries
-            if (idx + 1) % 5 == 0:
+            # Enhanced resource management
+            if (idx + 1) % 3 == 0:  # More frequent resource monitoring
                 log_resource_usage(f"After processing {idx + 1} links - ")
+                
+                # Force cleanup every 3 entries to prevent resource buildup
+                force_cleanup()
+                
+                # Check if we need to stop due to resource exhaustion
+                if circuit_breaker.should_stop_scraping():
+                    print(f"   🚨 STOPPING SCRAPING: Resource exhaustion detected during processing")
+                    logging.error("Stopping scraping due to resource exhaustion during processing")
+                    break
             
             # Save progress every 10 entries with enhanced cleanup
             if (idx + 1) % 10 == 0:
-                temp_backup = f"{output_file}.progress_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-                
-                # Clean up old progress files
+                # Clean up old progress files BEFORE creating new one
                 backup_manager.cleanup_progress_files(output_file)
+                
+                # Create new progress file with correct naming pattern
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                temp_backup = f"{output_file}.progress_{timestamp}.json"
                 
                 with open(temp_backup, 'w', encoding='utf-8') as f:
                     json.dump(data, f, indent=2, ensure_ascii=False)
                 print(f"   💾 Progress saved to {temp_backup}")
                 save_url_cache(url_cache, cache_path)
+                
+                # Force cleanup after saving progress
+                force_cleanup()
             
             # Small delay between requests
             time.sleep(2)
@@ -2100,6 +2273,7 @@ def process_comprehensive_flipkart_links(input_file="all_data.json",
         try:
             driver_manager.quit_driver()
             thread_manager.shutdown()
+            circuit_breaker.reset()  # Reset circuit breaker for next run
         except Exception as cleanup_error:
             logging.warning(f"Error during final manager cleanup: {cleanup_error}")
         
@@ -2133,6 +2307,9 @@ def process_comprehensive_flipkart_links(input_file="all_data.json",
         print(f"   🔄 Driver management: Automatic restart on connection/driver errors")
         print(f"   🧵 Thread management: Periodic refresh to prevent thread consumption")
         print(f"   💾 Backup management: Automatic cleanup to save storage space")
+        print(f"   🚨 Circuit breaker: Resource exhaustion protection (stops at 80% resource usage)")
+        print(f"   🔧 Resource monitoring: Enhanced with thread and process tracking")
+        print(f"   🧹 Cleanup frequency: Every 3 operations to prevent resource buildup")
 
 # ===============================================
 # API SETUP AND ENDPOINTS FOR FLIPKART SCRAPER
@@ -2154,7 +2331,7 @@ scraping_status = {
     'output_file': None
 }
 
-def run_flipkart_scraper_process(input_file="all_data.json", output_file=None, flipkart_urls_file="visited_urls_flipkart.txt"):
+def run_flipkart_scraper_process(input_file="all_data_flipkart_20250905_142008.json.progress_20250905_212054.json", output_file=None, flipkart_urls_file="visited_urls_flipkart.txt"):
     """
     Function to run the Flipkart scraper process in a separate thread
     """
@@ -2223,7 +2400,7 @@ def start_scraping():
         # Get parameters from request (if any)
         data = request.get_json() if request.is_json else {}
         
-        input_file = data.get('input_file', 'all_data.json')
+        input_file = data.get('input_file', 'all_data_flipkart_20250905_142008.json.progress_20250905_212054.json')
         # Generate timestamped output filename if not provided
         output_file = data.get('output_file', None)
         if output_file is None:
@@ -2376,11 +2553,11 @@ if __name__ == "__main__":
         # Run as direct script execution (original behavior)
         # Generate timestamped output filename
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        input_file = "all_data.json"
+        input_file = "all_data_flipkart_20250905_142008.json.progress_20250905_212054.json"
         output_file = f"all_data_flipkart_{timestamp}.json"
         
         print("🚀 Enhanced Comprehensive Flipkart Scraper with Price & Stock Tracking")
-        print("📍 Target: all_data.json")
+        print("📍 Target: all_data_flipkart_20250905_142008.json.progress_20250905_212054.json")
         print("🔒 Amazon & Croma offers: COMPLETELY ISOLATED")
         print("🎯 Focus: ALL Flipkart links (re-scrapes everything)")
         print("🔍 Traversal: ALL nested locations (variants, all_matching_products, unmapped)")
